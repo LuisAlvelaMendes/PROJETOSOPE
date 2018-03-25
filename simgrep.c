@@ -8,37 +8,37 @@
 #include <fcntl.h>
 
 //in case he doesn't select any special options
-void math_pattern_default(char* argv[]){
+void match_pattern_default(char* argv[]){
  return;
 }
 
 //-i
-void math_pattern_i(char* argv[]){
+void match_pattern_i(char* argv[]){
  return;
 }
 
 //-l
-void math_pattern_l(char* argv[]){
+void match_pattern_l(char* argv[]){
  return;
 }
 
 //-n
-void math_pattern_n(char* argv[]){
+void match_pattern_n(char* argv[]){
  return;
 }
 
 //-c
-void math_pattern_c(char* argv[]){
+void match_pattern_c(char* argv[]){
  return;
 }
 
 //-w
-void math_pattern_w(char* argv[]){
+void match_pattern_w(char* argv[]){
  return;
 }
 
 //-r
-void math_pattern_r(char* argv[]){
+void match_pattern_r(char* argv[]){
  return;
 }
 
@@ -46,27 +46,27 @@ void math_pattern_r(char* argv[]){
 void parse_option(char* argv){
  
  if(strcmp(argv,"-i") == 0){
-  math_pattern_i(&argv);
+  match_pattern_i(&argv);
  }
 
  if(strcmp(argv,"-l") == 0){
-  math_pattern_l(&argv);
+  match_pattern_l(&argv);
  }
 
  if(strcmp(argv,"-n") == 0){
-  math_pattern_r(&argv);
+  match_pattern_r(&argv);
  }
 
  if(strcmp(argv,"-c") == 0){
-  math_pattern_c(&argv);
+  match_pattern_c(&argv);
  }
 
  if(strcmp(argv,"-w") == 0){
-  math_pattern_w(&argv);
+  match_pattern_w(&argv);
  }
 
  if(strcmp(argv,"-r") == 0){
-  math_pattern_r(&argv);
+  match_pattern_r(&argv);
  }
 
 }
@@ -103,7 +103,7 @@ if(argc == 3){
 //se forem 3 pode ser do género grep -r (qqlcoisa) || grep (pattern) (file) || grep -(outra opção válida, das que estão no enunciado, qql para além de r) (pattern) mas sem file, que tem de perguntar.
 
 if(strcmp(argv[1],"-r") == 0){
- math_pattern_r(argv);
+ match_pattern_r(argv);
 }
 
 else if(strcmp(argv[1],"-i") == 0 || strcmp(argv[1],"-l") == 0 || strcmp(argv[1],"-n") == 0 || strcmp(argv[1],"-c") == 0 || strcmp(argv[1],"-w") == 0){
@@ -114,7 +114,7 @@ else if(strcmp(argv[1],"-i") == 0 || strcmp(argv[1],"-l") == 0 || strcmp(argv[1]
 }
 
 else{
- math_pattern_default(argv);
+ match_pattern_default(argv);
 }
 
 }
