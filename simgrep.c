@@ -7,8 +7,61 @@
 #include<string.h>
 #include <fcntl.h>
 
+#define MAX_LINE_LENGTH 100
+
 //in case he doesn't select any special options
 void match_pattern_default(char* argv[]){
+
+ int fd;
+
+ int r;
+
+ int i = 0;
+
+ char temp;
+
+ char* pattern = argv[1];
+ 
+ char* file = argv[2];
+
+ char line[MAX_LINE_LENGTH];
+
+ //limpar a memória da linha
+ memset(line,0,sizeof(line));
+
+ if((fd=open(file,O_RDONLY)) != -1)
+ {
+     while((r=read(fd,&temp,sizeof(char))) != 0)
+     {
+            if(temp != '\n')
+            {
+                line[i++] = temp;
+            }
+
+            else
+            {   
+		//se na linha que estar a ser analizada se econtra uma ocorrência do pattern, imprimir essa linha.
+                if(strstr(line,pattern) != NULL){
+                    printf("%s\n",line);
+		}
+                
+		//para cada nova linha refrescar a memoria e continuar.
+		memset(line,0,sizeof(line));
+                
+                i = 0;
+            }
+
+     }
+
+   //null terminate da string
+   line[i] = '\n';
+ }
+
+ else {
+  perror("Can't open file.");
+  return;
+ }
+ 
  return;
 }
 
