@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include<string.h>
 #include <fcntl.h>
+#include <dirent.h>
 
 #define MAX_LINE_LENGTH 100
 
@@ -26,9 +27,21 @@ void match_pattern_default(char* argv[]){
 
  char line[MAX_LINE_LENGTH];
 
+ DIR *dir;
+
+ //primeiro, verificar se file é mesmo um ficheiro e não um diretório, fazendo opendir.
+
+ dir = opendir(file);
+
+ if(dir != NULL) { 
+  printf("%s is a directory.\n", file);
+  return;
+ } 
+
  //limpar a memória da linha
  memset(line,0,sizeof(line));
 
+ //abrir o ficheiro para leitura e colocar carater a carater no buffer
  if((fd=open(file,O_RDONLY)) != -1)
  {
      while((r=read(fd,&temp,sizeof(char))) != 0)
@@ -58,7 +71,7 @@ void match_pattern_default(char* argv[]){
  }
 
  else {
-  perror("Can't open file.");
+  perror("Can't open file");
   return;
  }
  
