@@ -43,30 +43,31 @@ void match_pattern_r(char* argv[]){
 }
 
 //select which function to run
-void parse_option(char* argv){
+void parse_option(char* argv[]){
  
- if(strcmp(argv,"-i") == 0){
-  match_pattern_i(&argv);
+ if(strcmp(argv[1],"-i") == 0){
+printf("but he is here once \n");
+  match_pattern_i(argv);
  }
 
- if(strcmp(argv,"-l") == 0){
-  match_pattern_l(&argv);
+ if(strcmp(argv[1],"-l") == 0){
+  match_pattern_l(argv);
  }
 
- if(strcmp(argv,"-n") == 0){
-  match_pattern_r(&argv);
+ if(strcmp(argv[1],"-n") == 0){
+  match_pattern_r(argv);
  }
 
- if(strcmp(argv,"-c") == 0){
-  match_pattern_c(&argv);
+ if(strcmp(argv[1],"-c") == 0){
+  match_pattern_c(argv);
  }
 
- if(strcmp(argv,"-w") == 0){
-  match_pattern_w(&argv);
+ if(strcmp(argv[1],"-w") == 0){
+  match_pattern_w(argv);
  }
 
- if(strcmp(argv,"-r") == 0){
-  match_pattern_r(&argv);
+ if(strcmp(argv[1],"-r") == 0){
+  match_pattern_r(argv);
  }
 
 }
@@ -93,7 +94,14 @@ if(argc == 2){
  else {
   printf("Filename to search in: ");
   scanf("%s", filename);
-  return 2;
+  
+  char* new[3];
+  
+  new[0] = argv[0];
+  new[1] = argv[1];
+  new[2] = filename;
+
+  match_pattern_default(new);
  }
 
 }
@@ -110,7 +118,13 @@ else if(strcmp(argv[1],"-i") == 0 || strcmp(argv[1],"-l") == 0 || strcmp(argv[1]
 
  printf("Filename to search in: ");
  scanf("%s", filename);
- return 2;
+ char* new[3];
+  
+ new[0] = argv[0];
+ new[1] = argv[1];
+ new[2] = filename;
+
+ parse_option(new);
 }
 
 else{
@@ -120,7 +134,7 @@ else{
 }
 
 if(argc > 3){
- parse_option(argv[1]);
+ parse_option(argv);
 }
 
 return 0;
