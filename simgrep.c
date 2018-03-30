@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include<stdio.h>
 #include<unistd.h>
 #include<stdlib.h>
@@ -10,8 +11,40 @@
 
 #define MAX_LINE_LENGTH 100
 
+//INFO WILL BE THE ARRAY WE WILL PASS BETWEEN FUNCTIONS
+
+//counts how many options there are
+int countOptions(char* argv[], int argc){
+
+int counter = 0;
+
+for(int i = 1; i < argc; i++) {
+
+ if(strcmp(argv[i],"-i") == 0 || strcmp(argv[i],"-l") == 0 || strcmp(argv[i],"-n") == 0 || strcmp(argv[i],"-c") == 0 || strcmp(argv[i],"-w") == 0 || strcmp(argv[i],"-r") == 0){
+    counter++;
+ }
+
+}
+
+return counter;
+}
+
+//counts how many files there are
+int countFiles(char* argv[], int argc){
+
+int counter = 0;
+
+//the index for the first file will begin at the number of options +2. (+1 for the pattern, +1 for the first file)
+
+for(int i = countOptions(argv, argc)+2; i < argc; i++) {
+ counter++;
+}
+
+return counter;
+}
+
 //in case he doesn't select any special options
-void match_pattern_default(char* argv[]){
+void match_pattern_default(char* argv[], int argc){
 
  int fd;
 
@@ -21,15 +54,20 @@ void match_pattern_default(char* argv[]){
 
  char temp;
 
- char* pattern = argv[1];
+ char* pattern = argv[countOptions(argv, argc)+1]; 
  
- char* file = argv[2];
-
  char line[MAX_LINE_LENGTH];
 
  DIR *dir;
 
+ //this tells you the index at which files start
+ int fileStartIndex = countOptions(argv, argc)+2;
+
+for(int a = fileStartIndex; a < argc; a++){
+
  //primeiro, verificar se file é mesmo um ficheiro e não um diretório, fazendo opendir.
+
+ char* file = argv[a];
 
  dir = opendir(file);
 
@@ -46,6 +84,7 @@ void match_pattern_default(char* argv[]){
  {
      while((r=read(fd,&temp,sizeof(char))) != 0)
      {
+
             if(temp != '\n')
             {
                 line[i++] = temp;
@@ -55,7 +94,11 @@ void match_pattern_default(char* argv[]){
             {   
 		//se na linha que estar a ser analizada se econtra uma ocorrência do pattern, imprimir essa linha.
                 if(strstr(line,pattern) != NULL){
-                    printf("%s\n",line);
+                    if(argc > fileStartIndex+1){
+			printf("%s:%s\n",file, line);
+		    }
+
+                    else printf("%s\n", line);
 		}
                 
 		//para cada nova linha refrescar a memoria e continuar.
@@ -74,13 +117,17 @@ void match_pattern_default(char* argv[]){
   perror("Can't open file");
   return;
  }
+
+}
  
  return;
 }
 
 //-i
-void match_pattern_i(char* argv[]){
- return;
+char* match_pattern_i(char* argv[], char* info[]){
+
+return *info;
+
 }
 
 //-l
@@ -109,33 +156,43 @@ void match_pattern_r(char* argv[]){
 }
 
 //select which function to run
-void parse_option(char* argv[]){
- 
- if(strcmp(argv[1],"-i") == 0){
-printf("but he is here once \n");
-  match_pattern_i(argv);
+void parse_option(char* argv[], int argc){
+
+char* info[MAX_LINE_LENGTH];
+
+for(int i = 1; i < argc; i++) {
+
+ if(strcmp(argv[i],"-i") == 0){
+  match_pattern_i(argv, info);
  }
 
- if(strcmp(argv[1],"-l") == 0){
+ else if(strcmp(argv[i],"-l") == 0){
   match_pattern_l(argv);
  }
 
- if(strcmp(argv[1],"-n") == 0){
+ else if(strcmp(argv[i],"-n") == 0){
   match_pattern_r(argv);
  }
 
- if(strcmp(argv[1],"-c") == 0){
+ else if(strcmp(argv[i],"-c") == 0){
   match_pattern_c(argv);
  }
 
- if(strcmp(argv[1],"-w") == 0){
+ else if(strcmp(argv[i],"-w") == 0){
   match_pattern_w(argv);
  }
 
- if(strcmp(argv[1],"-r") == 0){
+ else if(strcmp(argv[i],"-r") == 0){
   match_pattern_r(argv);
  }
 
+ else{
+ //no more options from here on out, print and quit.
+ break;
+ }
+}
+
+return;
 }
 
 int main(int argc, char* argv[]){
@@ -158,16 +215,29 @@ if(argc == 2){
  } 
 
  else {
-  printf("Filename to search in: ");
-  scanf("%s", filename);
-  
-  char* new[3];
-  
+
+  char* new[20];
+
+  int argcounter = 2;
+
   new[0] = argv[0];
   new[1] = argv[1];
-  new[2] = filename;
 
-  match_pattern_default(new);
+  printf("Filename to search in:\n");
+  printf("To terminate file input write nothing and just press enter.\n");
+
+  for(int i = 2; i < 20; i++){
+  
+   if (fgets (new[i], 50, STDIN_FILENO) == NULL)
+     break;
+
+   if (strcmp (new[i], "\n") == 0)
+     break;
+
+    argcounter++;
+  }
+
+  match_pattern_default(new, argcounter);
  }
 
 }
@@ -189,18 +259,23 @@ else if(strcmp(argv[1],"-i") == 0 || strcmp(argv[1],"-l") == 0 || strcmp(argv[1]
  new[0] = argv[0];
  new[1] = argv[1];
  new[2] = filename;
-
- parse_option(new);
+ 
+ //FOR SEVERAL FILES??????
+ //parse_option(new);
 }
 
 else{
- match_pattern_default(argv);
+ match_pattern_default(argv, argc);
 }
 
 }
 
 if(argc > 3){
- parse_option(argv);
+ if(countOptions(argv, argc) == 0){
+   match_pattern_default(argv, argc);
+ }
+ 
+ parse_option(argv, argc);
 }
 
 return 0;
