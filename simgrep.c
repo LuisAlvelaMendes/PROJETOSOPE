@@ -136,12 +136,138 @@ void match_pattern_l(char* argv[]){
 }
 
 //-n
-void match_pattern_n(char* argv[]){
- return;
+char* match_pattern_n(char* argv[], int argc, char* info[]){
+
+ int fd, r;
+ int i = 0, n = 0;
+ char temp;
+ char* pattern = argv[countOptions(argv, argc)+1]; 
+ char line[MAX_LINE_LENGTH];
+
+ DIR *dir;
+
+//this tells you the index at which files start
+ int fileStartIndex = countOptions(argv, argc)+2;
+
+for(int a = fileStartIndex; a < argc; a++){
+
+ char* file = argv[a];
+
+ dir = opendir(file);
+
+ if(dir != NULL) { 
+  printf("%s is a directory.\n", file);
+  return NULL;
+ } 
+
+ //limpar a memória da linha
+ memset(line,0,sizeof(line));
+
+ if((fd=open(file,O_RDONLY)) != -1)
+ {
+     while((r=read(fd,&temp,sizeof(char))) != 0)
+     {
+        if(temp != '\n')
+        {
+          line[i++] = temp;
+        }
+
+        else{   
+	     //fazer a contagem das linhas
+	     n++;
+
+	     if(strstr(line,pattern) != NULL){
+                 if(argc > fileStartIndex+1){
+		    		printf("%s:%d:%s\n",file, n, line);
+		 		 }
+				
+                  else printf("%d: %s\n",n,line);
+	     }
+                
+		//para cada nova linha refrescar a memoria e continuar.
+		memset(line,0,sizeof(line));
+                
+                i = 0;
+            }
+
+     }
+
+   //null terminate da string
+   line[i] = '\n';
+ }
+
+ else {
+  perror("Can't open file");
+  return NULL;
+ }
+
+}
+
+ return *info;
 }
 
 //-c
-void match_pattern_c(char* argv[]){
+void match_pattern_c(char* argv[], int argc, char* info[]){
+
+	int fd, r;
+ 	int i = 0, n = 0;
+ 	char temp;
+ 	char* pattern = argv[countOptions(argv, argc)+1]; 
+ 	char line[MAX_LINE_LENGTH];
+
+ 	DIR *dir;
+
+ 	//this tells you the index at which files start
+ 	int fileStartIndex = countOptions(argv, argc)+2;
+
+ for(int a = fileStartIndex; a < argc; a++){
+
+ 	char* file = argv[a];
+
+ 	dir = opendir(file);
+
+ 	if(dir != NULL) { 
+  		printf("%s is a directory.\n", file);
+  		return;
+ 	} 
+
+ 	//limpar a memória da linha
+ 	memset(line,0,sizeof(line));
+
+ 	if((fd=open(file,O_RDONLY)) != -1)
+ 	{
+    	 while((r=read(fd,&temp,sizeof(char))) != 0)
+    	 {
+            if(temp != '\n')
+            {
+                line[i++] = temp;
+            }
+
+            else
+            {   
+                if(strstr(line,pattern) != NULL){
+				//fazer a contagem das linhas que contem pattern
+				n++;
+				}
+                
+		//para cada nova linha refrescar a memoria e continuar.
+		memset(line,0,sizeof(line));
+                
+                i = 0;
+            }
+
+     }
+		printf("%d\n",n);
+
+   //null terminate da string
+   line[i] = '\n';
+ }
+
+ else {
+  perror("Can't open file");
+  return;
+ }
+ }
  return;
 }
 
@@ -160,7 +286,7 @@ void parse_option(char* argv[], int argc){
 
 char* info[MAX_LINE_LENGTH];
 
-for(int i = 1; i < argc; i++) {
+for(int i = 1; i <= countOptions(argv, argc); i++) {
 
  if(strcmp(argv[i],"-i") == 0){
   match_pattern_i(argv, info);
@@ -171,11 +297,11 @@ for(int i = 1; i < argc; i++) {
  }
 
  else if(strcmp(argv[i],"-n") == 0){
-  match_pattern_r(argv);
+  match_pattern_n(argv, argc, info);
  }
 
  else if(strcmp(argv[i],"-c") == 0){
-  match_pattern_c(argv);
+  match_pattern_c(argv, argc, info);
  }
 
  else if(strcmp(argv[i],"-w") == 0){
