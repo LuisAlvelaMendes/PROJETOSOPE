@@ -17,31 +17,31 @@
 //counts how many options there are
 int countOptions(char* argv[], int argc){
 
-int counter = 0;
+ int counter = 0;
 
-for(int i = 1; i < argc; i++) {
+ for(int i = 1; i < argc; i++) {
 
- if(strcmp(argv[i],"-i") == 0 || strcmp(argv[i],"-l") == 0 || strcmp(argv[i],"-n") == 0 || strcmp(argv[i],"-c") == 0 || strcmp(argv[i],"-w") == 0 || strcmp(argv[i],"-r") == 0){
-    counter++;
+  if(strcmp(argv[i],"-i") == 0 || strcmp(argv[i],"-l") == 0 || strcmp(argv[i],"-n") == 0 || strcmp(argv[i],"-c") == 0 || strcmp(argv[i],"-w") == 0 || strcmp(argv[i],"-r") == 0){
+     counter++;
+  }
+ 
  }
 
-}
-
-return counter;
+ return counter;
 }
 
 //counts how many files there are
 int countFiles(char* argv[], int argc){
 
-int counter = 0;
+ int counter = 0;
 
-//the index for the first file will begin at the number of options +2. (+1 for the pattern, +1 for the first file)
+ //the index for the first file will begin at the number of options +2. (+1 for the pattern, +1 for the first file)
 
-for(int i = countOptions(argv, argc)+2; i < argc; i++) {
- counter++;
-}
+ for(int i = countOptions(argv, argc)+2; i < argc; i++) {
+    counter++;
+ }
 
-return counter;
+ return counter;
 }
 
 //in case he doesn't select any special options
@@ -362,16 +362,16 @@ for(int a = fileStartIndex; a < argc; a++){
 //-c
 void match_pattern_c(char* argv[], int argc, char* info[]){
 
-	int fd, r;
- 	int i = 0;
- 	char temp;
- 	char* pattern = argv[countOptions(argv, argc)+1]; 
- 	char line[MAX_LINE_LENGTH];
+ int fd, r;
+ int i = 0;
+ char temp;
+ char* pattern = argv[countOptions(argv, argc)+1]; 
+ char line[MAX_LINE_LENGTH];
 
- 	DIR *dir;
+ DIR *dir;
 
- 	//this tells you the index at which files start
- 	int fileStartIndex = countOptions(argv, argc)+2;
+ //this tells you the index at which files start
+ int fileStartIndex = countOptions(argv, argc)+2;
 
  for(int a = fileStartIndex; a < argc; a++){
 
@@ -423,6 +423,7 @@ void match_pattern_c(char* argv[], int argc, char* info[]){
   return;
  }
  }
+
  return;
 }
 
@@ -439,42 +440,41 @@ void match_pattern_r(char* argv[]){
 //select which function to run
 void parse_option(char* argv[], int argc){
 
-char* info[MAX_LINE_LENGTH];
+ char* info[MAX_LINE_LENGTH];
 
-for(int i = 1; i <= countOptions(argv, argc); i++) {
+ for(int i = 1; i <= countOptions(argv, argc); i++) {
 
- if(strcmp(argv[i],"-i") == 0){
-  printf("chegou ao parse correto\n");
+  if(strcmp(argv[i],"-i") == 0){
   match_pattern_i(argv, argc, info);
- }
+  }
 
- else if(strcmp(argv[i],"-l") == 0){
+  else if(strcmp(argv[i],"-l") == 0){
   match_pattern_l(argv, argc, info);
- }
+  }
 
- else if(strcmp(argv[i],"-n") == 0){
+  else if(strcmp(argv[i],"-n") == 0){
   match_pattern_n(argv, argc, info);
- }
+  }
 
- else if(strcmp(argv[i],"-c") == 0){
+  else if(strcmp(argv[i],"-c") == 0){
   match_pattern_c(argv, argc, info);
- }
+  }
 
- else if(strcmp(argv[i],"-w") == 0){
+  else if(strcmp(argv[i],"-w") == 0){
   match_pattern_w(argv);
- }
+  }
 
- else if(strcmp(argv[i],"-r") == 0){
+  else if(strcmp(argv[i],"-r") == 0){
   match_pattern_r(argv);
+  }
+
+  else{
+  //no more options from here on out, print and quit.
+  break;
+  }
  }
 
- else{
- //no more options from here on out, print and quit.
- break;
- }
-}
-
-return;
+ return;
 }
 
 
