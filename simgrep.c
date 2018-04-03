@@ -329,12 +329,30 @@ for(int a = fileStartIndex; a < argc; a++){
 	     //fazer a contagem das linhas
 	     n++;
 
-	     if(strstr(line,pattern) != NULL){
+	     if(global_isThereI){
+		if(global_isThereW){
+		  break;
+		}
+		else{
+		 if(strcasestr(line,pattern) != NULL){
+		   if(argc > fileStartIndex+1){
+		     printf("%s:%d:%s\n",file, n, line);
+		   }		
+	           else printf("%d: %s\n",n,line);
+		 }
+	        }
+	     }
+	     else if(global_isThereW){
+		break;
+	     }
+	     else{
+		if(strstr(line,pattern) != NULL){
                  if(argc > fileStartIndex+1){
 		    printf("%s:%d:%s\n",file, n, line);
 		 }
 				
                   else printf("%d: %s\n",n,line);
+	        }
 	     }
                 
 		//para cada nova linha refrescar a memoria e continuar.
@@ -400,10 +418,26 @@ void match_pattern_c(char* argv[], int argc, char* info[]){
 
             else
             {   
-                if(strstr(line,pattern) != NULL){
-				//fazer a contagem das linhas que contem pattern
-			n++;
-		}
+		if(global_isThereI){
+		  if(global_isThereW){
+		    break;
+		  }
+		  else{
+		   if(strcasestr(line,pattern) != NULL){
+		     //fazer a contagem das linhas que contem pattern
+		     n++;
+		   }
+	          }
+	     	}
+	     	else if(global_isThereW){
+		  break;
+	     	}
+	     	else{
+		  if(strstr(line,pattern) != NULL){
+		    //fazer a contagem das linhas que contem pattern
+		    n++;
+	          }
+	     	}
                 
 		//para cada nova linha refrescar a memoria e continuar.
 		memset(line,0,sizeof(line));
