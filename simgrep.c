@@ -14,16 +14,50 @@
 
 //INFO WILL BE THE ARRAY WE WILL PASS BETWEEN FUNCTIONS
 
+ 
+ int global_isThereL = 0;
+ int global_isThereC = 0;
+ int global_isThereN = 0;
+ int global_isThereR = 0;
+ int global_isThereI = 0;
+ int global_isThereW = 0;
+
 //counts how many options there are
 int countOptions(char* argv[], int argc){
 
  int counter = 0;
 
  for(int i = 1; i < argc; i++) {
+  
+  if(strcmp(argv[i],"-r") == 0){
+    global_isThereR = 1;
+    counter++;
+  }
 
-  if(strcmp(argv[i],"-i") == 0 || strcmp(argv[i],"-l") == 0 || strcmp(argv[i],"-n") == 0 || strcmp(argv[i],"-c") == 0 || strcmp(argv[i],"-w") == 0 || strcmp(argv[i],"-r") == 0){
+  if(strcmp(argv[i],"-l") == 0){
+     global_isThereL = 1;
      counter++;
   }
+
+  if(strcmp(argv[i],"-n") == 0){
+    global_isThereN = 1;
+    counter++; 
+  }
+
+  if(strcmp(argv[i],"-c") == 0){
+    global_isThereC = 1;
+    counter++;
+  }
+
+  if(strcmp(argv[i],"-i") == 0){ 
+     global_isThereI = 1;
+     counter++;
+  }
+
+  if(strcmp(argv[i],"-w") == 0){
+     global_isThereW = 1;
+     counter++; 
+  } 
  
  }
 
@@ -173,6 +207,11 @@ for(int a = fileStartIndex; a < argc; a++){
 
             else
             {   
+
+		if(global_isThereW){
+		  //TODO:
+		}
+		
 		//se na linha que estar a ser analizada se econtra uma ocorrência do pattern, imprimir essa linha.
                 if(strcasestr(line,pattern) != NULL){
                     if(argc > fileStartIndex+1){
@@ -256,6 +295,24 @@ for(int a = fileStartIndex; a < argc; a++){
 
             else
             {   
+		if(global_isThereI){
+		  
+		  if(global_isThereW){
+		   //TODO:
+                  }
+		  
+		  if(strcasestr(line,pattern) != NULL){
+		    printThisFile = 1;
+		  }
+
+		}
+
+		if(global_isThereW){
+		  //TODO:
+		  if(global_isThereI){}
+
+		}		
+		
 		//se na linha que estar a ser analizada se econtra uma ocorrência do pattern, imprimir essa linha.
                 if(strstr(line,pattern) != NULL){
                     printThisFile = 1;
@@ -462,12 +519,12 @@ void match_pattern_c(char* argv[], int argc, char* info[]){
 }
 
 //-w
-void match_pattern_w(char* argv[]){
- return;
+char* match_pattern_w(char* argv[], int argc, char* info[]){
+ return *info;
 }
 
 //-r
-void match_pattern_r(char* argv[]){
+void match_pattern_r(char* argv[], int argc){
  return;
 }
 
@@ -476,36 +533,43 @@ void parse_option(char* argv[], int argc){
 
  char* info[MAX_LINE_LENGTH];
 
- for(int i = 1; i <= countOptions(argv, argc); i++) {
-
-  if(strcmp(argv[i],"-i") == 0){
-  match_pattern_i(argv, argc, info);
+  if(global_isThereR){
+  match_pattern_r(argv, argc);
   }
 
-  else if(strcmp(argv[i],"-l") == 0){
+  else if(global_isThereL){
   match_pattern_l(argv, argc, info);
   }
 
-  else if(strcmp(argv[i],"-n") == 0){
-  match_pattern_n(argv, argc, info);
-  }
-
-  else if(strcmp(argv[i],"-c") == 0){
+  else if(global_isThereC){
   match_pattern_c(argv, argc, info);
   }
 
-  else if(strcmp(argv[i],"-w") == 0){
-  match_pattern_w(argv);
+  else if(global_isThereN){
+  match_pattern_n(argv, argc, info);
   }
 
-  else if(strcmp(argv[i],"-r") == 0){
-  match_pattern_r(argv);
-  }
+  else {
 
-  else{
-  //no more options from here on out, print and quit.
-  break;
+   for(int i = 1; i <= countOptions(argv, argc); i++) {
+
+    if(strcmp(argv[i],"-i") == 0){
+     match_pattern_i(argv, argc, info);
+     break;
+    }
+
+    else if(strcmp(argv[i],"-w") == 0){
+     match_pattern_w(argv, argc, info);
+     break;
+    }
+
+    else{
+    //no more options from here on out, print and quit.
+    break;
+    }
+  
   }
+ 
  }
 
  return;
@@ -513,8 +577,6 @@ void parse_option(char* argv[], int argc){
 
 
 int main(int argc, char* argv[]){
-
-char filename[100];
 
 if(argc == 1){
 
@@ -581,7 +643,7 @@ if(argc == 3){
 //se forem 3 pode ser do género grep -r (qqlcoisa) || grep (pattern) (file) || grep -(outra opção válida, das que estão no enunciado, qql para além de r) (pattern) mas sem file, que tem de perguntar.
 
 if(strcmp(argv[1],"-r") == 0){
- match_pattern_r(argv);
+ match_pattern_r(argv, argc);
 }
 
 else if(strcmp(argv[1],"-i") == 0 || strcmp(argv[1],"-l") == 0 || strcmp(argv[1],"-n") == 0 || strcmp(argv[1],"-c") == 0 || strcmp(argv[1],"-w") == 0){
