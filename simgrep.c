@@ -237,7 +237,7 @@ for(int a = fileStartIndex; a < argc; a++){
 		}
 		
 		//se na linha que estar a ser analizada se econtra uma ocorrência do pattern, imprimir essa linha.
-                if(strcasestr(line,pattern) != NULL){
+                else if(strcasestr(line,pattern) != NULL){
                     if(argc > fileStartIndex+1){
 			printf("%s:%s\n",file, line);
 		    }
@@ -553,12 +553,8 @@ void match_pattern_c(char* argv[], int argc, char* info[]){
 
 			if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
 		   	 if(!isalpha(line[position+patternSize+1]) && !isdigit(line[position+patternSize+1]) && line[position+patternSize+1] != '_'){	
-				
-				if(argc > fileStartIndex+1){
-		     		  printf("%s:%s\n",file, line);
-		   		}		
-	           	    	
-				else printf("%s\n",line);
+			    //fazer a contagem das linhas que contem pattern
+			    n++;
 				
 			 }
 			}
@@ -579,12 +575,8 @@ void match_pattern_c(char* argv[], int argc, char* info[]){
 
 			if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
 		   	 if(!isalpha(line[position+patternSize+1]) && !isdigit(line[position+patternSize+1]) && line[position+patternSize+1] != '_'){	
-				
-				if(argc > fileStartIndex+1){
-		     		  printf("%s:%s\n",file, line);
-		   		}		
-	           	    	
-				else printf("%s\n",line);
+			    //fazer a contagem das linhas que contem pattern
+		     	    n++;
 				
 			 }
 			}
@@ -636,8 +628,6 @@ char* match_pattern_w(char* argv[], int argc, char* info[]){
  for(int a = fileStartIndex; a < argc; a++){
 
  	char* file = argv[a];
-
-        int n = 0;
 
  	dir = opendir(file);
 
