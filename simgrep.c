@@ -23,29 +23,6 @@
  int global_isThereI = 0;
  int global_isThereW = 0;
 
-
-//-w auxiliary function
-void auxiliaryWcase(char *line, char *pattern){
-
-	if(strcasestr(line,pattern) != NULL){
-		char *result = strstr(line,pattern);
-		int position = result - line;
-		int patternSize = strlen(line) - position;
-
-	 if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-	  if(!isalpha(line[position+patternSize+1]) && !isdigit(line[position+patternSize+1]) && line[position+patternSize+1] != '_'){
-	
-				if(argc > fileStartIndex+1){
-		     		  printf("%s:%s\n",file, line);
-		   		}		
-	           	    	
-				else printf("%s\n",line);
-				
-			 }
-			}
-	}
-}
-
 //counts how many options there are
 int countOptions(char* argv[], int argc){
 
@@ -233,7 +210,25 @@ for(int a = fileStartIndex; a < argc; a++){
             {   
 
 		if(global_isThereW){
-		   auxiliaryWcase(line,pattern);
+		   
+			if(strcasestr(line,pattern) != NULL){
+				char *result = strcasestr(line,pattern);
+				int position = result - line;
+				int patternSize = strlen(line) - position;
+printf("chegou aqui\n");
+
+	 			if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
+	  				if(!isalpha(line[position+patternSize+1]) && !isdigit(line[position+patternSize+1]) && line[position+patternSize+1] != '_'){
+
+					if(argc > fileStartIndex+1){
+		     		  		printf("%s:%s\n",file, line);
+		   			}		
+	           	    	
+					else printf("%s\n",line);
+				
+			 	}	
+			   }
+		     }
 		}
 		
 		//se na linha que estar a ser analizada se econtra uma ocorrência do pattern, imprimir essa linha.
@@ -323,7 +318,7 @@ for(int a = fileStartIndex; a < argc; a++){
 		  
 		  if(global_isThereW){
 			if(strcasestr(line,pattern) != NULL){
-				char *result = strstr(line,pattern);
+				char *result = strcasestr(line,pattern);
 				int position = result - line;
 				int patternSize = strlen(line) - position;
 
@@ -439,10 +434,24 @@ for(int a = fileStartIndex; a < argc; a++){
 
 	     if(global_isThereI){
 		if(global_isThereW){
-		
+		  if(strcasestr(line,pattern) != NULL){
+			char *result = strcasestr(line,pattern);
+			int position = result - line;
+			int patternSize = strlen(line) - position;
+
+	 		if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
+	  			if(!isalpha(line[position+patternSize+1]) && !isdigit(line[position+patternSize+1]) && line[position+patternSize+1] != '_'){
+	
+					if(argc > fileStartIndex+1){
+		     		  		printf("%s:%d:%s\n",file, n, line);
+		   			}		
+	           	    	
+					else printf("%d:%s\n",n, line);
+				
+			   }
+			}
+		     }
 		}
-		
-	 	}
 		else{
 		 if(strcasestr(line,pattern) != NULL){
 		   if(argc > fileStartIndex+1){
@@ -462,10 +471,10 @@ for(int a = fileStartIndex; a < argc; a++){
 		   	 if(!isalpha(line[position+patternSize+1]) && !isdigit(line[position+patternSize+1]) && line[position+patternSize+1] != '_'){	
 				
 				if(argc > fileStartIndex+1){
-		     		  printf("%s:%s\n",file, line);
+		     		  printf("%s:%d:%s\n",file, n, line);
 		   		}		
 	           	    	
-				else printf("%s\n",line);
+				else printf("%d:%s\n", n, line);
 				
 			 }
 			}
@@ -547,7 +556,7 @@ void match_pattern_c(char* argv[], int argc, char* info[]){
 		if(global_isThereI){
 		  if(global_isThereW){
 		   if(strcasestr(line,pattern) != NULL){
-			char *result = strstr(line,pattern);
+			char *result = strcasestr(line,pattern);
 			int position = result - line;
 			int patternSize = strlen(line) - position;
 
@@ -653,7 +662,7 @@ char* match_pattern_w(char* argv[], int argc, char* info[]){
 		if(global_isThereI){
 
 		   if(strcasestr(line,pattern) != NULL){
-			char *result = strstr(line,pattern);
+			char *result = strcasestr(line,pattern);
 			int position = result - line;
 			int patternSize = strlen(line) - position;
 
