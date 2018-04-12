@@ -214,11 +214,11 @@ for(int a = fileStartIndex; a < argc; a++){
 			if(strcasestr(line,pattern) != NULL){
 				char *result = strcasestr(line,pattern);
 				int position = result - line;
-				int patternSize = strlen(line) - position;
-printf("chegou aqui\n");
+				int patternSize = strlen(pattern);
+				//printf("chegou aqui\n");
 
 	 			if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-	  				if(!isalpha(line[position+patternSize+1]) && !isdigit(line[position+patternSize+1]) && line[position+patternSize+1] != '_'){
+	  				if(!isalpha(line[position+patternSize]) && !isdigit(line[position+patternSize]) && line[position+patternSize] != '_'){
 
 					if(argc > fileStartIndex+1){
 		     		  		printf("%s:%s\n",file, line);
@@ -320,10 +320,10 @@ for(int a = fileStartIndex; a < argc; a++){
 			if(strcasestr(line,pattern) != NULL){
 				char *result = strcasestr(line,pattern);
 				int position = result - line;
-				int patternSize = strlen(line) - position;
+				int patternSize = strlen(pattern);
 
 				if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-	  				if(!isalpha(line[position+patternSize+1]) && !isdigit(line[position+patternSize+1]) && line[position+patternSize+1] != '_'){
+	  				if(!isalpha(line[position+patternSize]) && !isdigit(line[position+patternSize]) && line[position+patternSize] != '_'){
 					printThisFile = 1;
 				
 			 		}
@@ -342,10 +342,10 @@ for(int a = fileStartIndex; a < argc; a++){
 		   if(strstr(line,pattern) != NULL){
 			char *result = strstr(line,pattern);
 			int position = result - line;
-			int patternSize = strlen(line) - position;
+			int patternSize = strlen(pattern);
 
 			if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-		   	 if(!isalpha(line[position+patternSize+1]) && !isdigit(line[position+patternSize+1]) && line[position+patternSize+1] != '_'){	
+		   	 if(!isalpha(line[position+patternSize]) && !isdigit(line[position+patternSize]) && line[position+patternSize] != '_'){	
 				
 				if(argc > fileStartIndex+1){
 		     		  printf("%s:%s\n",file, line);
@@ -437,10 +437,10 @@ for(int a = fileStartIndex; a < argc; a++){
 		  if(strcasestr(line,pattern) != NULL){
 			char *result = strcasestr(line,pattern);
 			int position = result - line;
-			int patternSize = strlen(line) - position;
+			int patternSize = strlen(pattern);
 
 	 		if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-	  			if(!isalpha(line[position+patternSize+1]) && !isdigit(line[position+patternSize+1]) && line[position+patternSize+1] != '_'){
+	  			if(!isalpha(line[position+patternSize]) && !isdigit(line[position+patternSize]) && line[position+patternSize] != '_'){
 	
 					if(argc > fileStartIndex+1){
 		     		  		printf("%s:%d:%s\n",file, n, line);
@@ -465,10 +465,10 @@ for(int a = fileStartIndex; a < argc; a++){
 		   if(strstr(line,pattern) != NULL){
 			char *result = strstr(line,pattern);
 			int position = result - line;
-			int patternSize = strlen(line) - position;
+			int patternSize = strlen(pattern);
 
 			if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-		   	 if(!isalpha(line[position+patternSize+1]) && !isdigit(line[position+patternSize+1]) && line[position+patternSize+1] != '_'){	
+		   	 if(!isalpha(line[position+patternSize]) && !isdigit(line[position+patternSize]) && line[position+patternSize] != '_'){	
 				
 				if(argc > fileStartIndex+1){
 		     		  printf("%s:%d:%s\n",file, n, line);
@@ -558,10 +558,10 @@ void match_pattern_c(char* argv[], int argc, char* info[]){
 		   if(strcasestr(line,pattern) != NULL){
 			char *result = strcasestr(line,pattern);
 			int position = result - line;
-			int patternSize = strlen(line) - position;
+			int patternSize = strlen(pattern);
 
 			if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-		   	 if(!isalpha(line[position+patternSize+1]) && !isdigit(line[position+patternSize+1]) && line[position+patternSize+1] != '_'){	
+		   	 if(!isalpha(line[position+patternSize]) && !isdigit(line[position+patternSize]) && line[position+patternSize] != '_'){	
 			    //fazer a contagem das linhas que contem pattern
 			    n++;
 				
@@ -580,10 +580,10 @@ void match_pattern_c(char* argv[], int argc, char* info[]){
 		   if(strstr(line,pattern) != NULL){
 			char *result = strstr(line,pattern);
 			int position = result - line;
-			int patternSize = strlen(line) - position;
+			int patternSize = strlen(pattern);
 
 			if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-		   	 if(!isalpha(line[position+patternSize+1]) && !isdigit(line[position+patternSize+1]) && line[position+patternSize+1] != '_'){	
+		   	 if(!isalpha(line[position+patternSize]) && !isdigit(line[position+patternSize]) && line[position+patternSize] != '_'){	
 			    //fazer a contagem das linhas que contem pattern
 		     	    n++;
 				
@@ -664,10 +664,10 @@ char* match_pattern_w(char* argv[], int argc, char* info[]){
 		   if(strcasestr(line,pattern) != NULL){
 			char *result = strcasestr(line,pattern);
 			int position = result - line;
-			int patternSize = strlen(line) - position;
+			int patternSize = strlen(pattern);
 
 			if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-		   	 if(!isalpha(line[position+patternSize+1]) && !isdigit(line[position+patternSize+1]) && line[position+patternSize+1] != '_'){	
+		   	 if(!isalpha(line[position+patternSize]) && !isdigit(line[position+patternSize]) && line[position+patternSize] != '_'){	
 				
 				if(argc > fileStartIndex+1){
 		     		  printf("%s:%s\n",file, line);
@@ -685,13 +685,13 @@ char* match_pattern_w(char* argv[], int argc, char* info[]){
 		  if(strstr(line,pattern) != NULL){
 			char *result = strstr(line,pattern);
 			int position = result - line;
-			int patternSize = strlen(line) - position;
+			int patternSize = strlen(pattern);
 
 			//printf("%c", line[position-1]);
-			//printf("%c", line[position+1]);
+			//printf("%c", line[position+patternSize]);
 
 			if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-		   	 if(!isalpha(line[position+patternSize+1]) && !isdigit(line[position+patternSize+1]) && line[position+patternSize+1] != '_'){	
+		   	 if(!isalpha(line[position+patternSize]) && !isdigit(line[position+patternSize]) && line[position+patternSize] != '_'){	
 				
 				if(argc > fileStartIndex+1){
 		     		  printf("%s:%s\n",file, line);
