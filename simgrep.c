@@ -23,6 +23,9 @@
  int global_isThereI = 0;
  int global_isThereW = 0;
 
+void parse_option(char* argv[], int argc);
+int main(int argc, char* argv[]);
+
 //counts how many options there are
 int countOptions(char* argv[], int argc){
 
@@ -174,6 +177,8 @@ char* match_pattern_i(char* argv[], int argc, char* info[]){
  
  char line[MAX_LINE_LENGTH];
 
+ char linecopy[MAX_LINE_LENGTH];
+
  DIR *dir;
 
  //this tells you the index at which files start
@@ -210,25 +215,31 @@ for(int a = fileStartIndex; a < argc; a++){
             {   
 
 		if(global_isThereW){
-		   
-			if(strcasestr(line,pattern) != NULL){
-				char *result = strcasestr(line,pattern);
-				int position = result - line;
-				int patternSize = strlen(pattern);
-				//printf("chegou aqui\n");
+		  strcpy(linecopy, line);		
+			
+		  while(strcasestr(linecopy,pattern) != NULL){
+			char *result = strcasestr(linecopy,pattern);
+			int position = result - linecopy;
+			int patternSize = strlen(pattern);		
 
-	 			if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-	  				if(!isalpha(line[position+patternSize]) && !isdigit(line[position+patternSize]) && line[position+patternSize] != '_'){
+			//printf("%c", line[position-1]);
+			//printf("%c", line[position+patternSize]);
 
-					if(argc > fileStartIndex+1){
-		     		  		printf("%s:%s\n",file, line);
-		   			}		
-	           	    	
-					else printf("%s\n",line);
+			if(!isalpha(linecopy[position-1]) && !isdigit(linecopy[position-1]) && linecopy[position-1] != '_'){
+		   	 if(!isalpha(linecopy[position+patternSize]) && !isdigit(linecopy[position+patternSize]) && linecopy[position+patternSize] != '_'){	
 				
-			 	}	
-			   }
-		     }
+				if(argc > fileStartIndex+1){
+		     		 printf("%s:%s\n",file, line);
+		   		}		
+	           	    	
+				else printf("%s\n", line);
+				
+			 }
+			}
+
+			
+			strncpy(linecopy, &linecopy[position+patternSize], MAX_LINE_LENGTH);
+	          }
 		}
 		
 		//se na linha que estar a ser analizada se econtra uma ocorrência do pattern, imprimir essa linha.
@@ -277,6 +288,8 @@ char* match_pattern_l(char* argv[], int argc, char* info[]){
  
  char line[MAX_LINE_LENGTH];
 
+ char linecopy[MAX_LINE_LENGTH];
+
  DIR *dir;
 
  //this tells you the index at which files start
@@ -315,22 +328,31 @@ for(int a = fileStartIndex; a < argc; a++){
             else
             {   
 		if(global_isThereI){
-		  
-		  if(global_isThereW){
-			if(strcasestr(line,pattern) != NULL){
-				char *result = strcasestr(line,pattern);
-				int position = result - line;
-				int patternSize = strlen(pattern);
 
-				if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-	  				if(!isalpha(line[position+patternSize]) && !isdigit(line[position+patternSize]) && line[position+patternSize] != '_'){
-					printThisFile = 1;
+                  if(global_isThereW){		  
+  
+		  strcpy(linecopy, line);		
+			
+		  while(strcasestr(linecopy,pattern) != NULL){
+			char *result = strcasestr(linecopy,pattern);
+			int position = result - linecopy;
+			int patternSize = strlen(pattern);		
+
+			//printf("%c", line[position-1]);
+			//printf("%c", line[position+patternSize]);
+
+			if(!isalpha(linecopy[position-1]) && !isdigit(linecopy[position-1]) && linecopy[position-1] != '_'){
+		   	 if(!isalpha(linecopy[position+patternSize]) && !isdigit(linecopy[position+patternSize]) && linecopy[position+patternSize] != '_'){	
 				
-			 		}
-				}
+				printThisFile = 1;
+			 }
+			}
 
-                  	}
-		  }
+			
+			strncpy(linecopy, &linecopy[position+patternSize], MAX_LINE_LENGTH);
+	          }
+		}
+               
 		  
 		  if(strcasestr(line,pattern) != NULL){
 		    printThisFile = 1;
@@ -339,23 +361,25 @@ for(int a = fileStartIndex; a < argc; a++){
 		}
 
 		if(global_isThereW){
-		   if(strstr(line,pattern) != NULL){
-			char *result = strstr(line,pattern);
-			int position = result - line;
-			int patternSize = strlen(pattern);
+			
+		  while(strstr(linecopy,pattern) != NULL){
+			char *result = strstr(linecopy,pattern);
+			int position = result - linecopy;
+			int patternSize = strlen(pattern);		
 
-			if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-		   	 if(!isalpha(line[position+patternSize]) && !isdigit(line[position+patternSize]) && line[position+patternSize] != '_'){	
+			//printf("%c", line[position-1]);
+			//printf("%c", line[position+patternSize]);
+
+			if(!isalpha(linecopy[position-1]) && !isdigit(linecopy[position-1]) && linecopy[position-1] != '_'){
+		   	 if(!isalpha(linecopy[position+patternSize]) && !isdigit(linecopy[position+patternSize]) && linecopy[position+patternSize] != '_'){	
 				
-				if(argc > fileStartIndex+1){
-		     		  printf("%s:%s\n",file, line);
-		   		}		
-	           	    	
-				else printf("%s\n",line);
-				
+				printThisFile = 1;
 			 }
 			}
-		   }
+
+			
+			strncpy(linecopy, &linecopy[position+patternSize], MAX_LINE_LENGTH);
+	          }
 
 		}		
 		
@@ -397,6 +421,7 @@ char* match_pattern_n(char* argv[], int argc, char* info[]){
  char temp;
  char* pattern = argv[countOptions(argv, argc)+1]; 
  char line[MAX_LINE_LENGTH];
+ char linecopy[MAX_LINE_LENGTH];
 
  DIR *dir;
 
@@ -434,24 +459,33 @@ for(int a = fileStartIndex; a < argc; a++){
 
 	     if(global_isThereI){
 		if(global_isThereW){
-		  if(strcasestr(line,pattern) != NULL){
-			char *result = strcasestr(line,pattern);
-			int position = result - line;
-			int patternSize = strlen(pattern);
+		  strcpy(linecopy, line);		
+			
+		  while(strcasestr(linecopy,pattern) != NULL){
+			char *result = strcasestr(linecopy,pattern);
+			int position = result - linecopy;
+			int patternSize = strlen(pattern);		
 
-	 		if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-	  			if(!isalpha(line[position+patternSize]) && !isdigit(line[position+patternSize]) && line[position+patternSize] != '_'){
-	
-					if(argc > fileStartIndex+1){
-		     		  		printf("%s:%d:%s\n",file, n, line);
-		   			}		
-	           	    	
-					else printf("%d:%s\n",n, line);
+			//printf("%c", line[position-1]);
+			//printf("%c", line[position+patternSize]);
+
+			if(!isalpha(linecopy[position-1]) && !isdigit(linecopy[position-1]) && linecopy[position-1] != '_'){
+		   	 if(!isalpha(linecopy[position+patternSize]) && !isdigit(linecopy[position+patternSize]) && linecopy[position+patternSize] != '_'){	
 				
-			   }
+				if(argc > fileStartIndex+1){
+		     		  printf("%s:%d:%s\n",file, n, line);
+		   		}		
+	           	    	
+				else printf("%d: %s\n",n,line);
+				
+			 }
 			}
-		     }
-		}
+
+			
+			strncpy(linecopy, &linecopy[position+patternSize], MAX_LINE_LENGTH);
+	             }
+		  }
+	
 		else{
 		 if(strcasestr(line,pattern) != NULL){
 		   if(argc > fileStartIndex+1){
@@ -462,23 +496,31 @@ for(int a = fileStartIndex; a < argc; a++){
 	        }
 	     }
 	     else if(global_isThereW){
-		   if(strstr(line,pattern) != NULL){
-			char *result = strstr(line,pattern);
-			int position = result - line;
-			int patternSize = strlen(pattern);
+		  strcpy(linecopy, line);		
+			
+		  while(strstr(linecopy,pattern) != NULL){
+			char *result = strstr(linecopy,pattern);
+			int position = result - linecopy;
+			int patternSize = strlen(pattern);		
 
-			if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-		   	 if(!isalpha(line[position+patternSize]) && !isdigit(line[position+patternSize]) && line[position+patternSize] != '_'){	
+			//printf("%c", line[position-1]);
+			//printf("%c", line[position+patternSize]);
+
+			if(!isalpha(linecopy[position-1]) && !isdigit(linecopy[position-1]) && linecopy[position-1] != '_'){
+		   	 if(!isalpha(linecopy[position+patternSize]) && !isdigit(linecopy[position+patternSize]) && linecopy[position+patternSize] != '_'){	
 				
 				if(argc > fileStartIndex+1){
 		     		  printf("%s:%d:%s\n",file, n, line);
 		   		}		
 	           	    	
-				else printf("%d:%s\n", n, line);
+				else printf("%d: %s\n",n,line);
 				
 			 }
 			}
-		   }
+
+			
+			strncpy(linecopy, &linecopy[position+patternSize], MAX_LINE_LENGTH);
+	          }
 	     }
 	     else{
 		if(strstr(line,pattern) != NULL){
@@ -520,7 +562,7 @@ void match_pattern_c(char* argv[], int argc, char* info[]){
  char temp;
  char* pattern = argv[countOptions(argv, argc)+1]; 
  char line[MAX_LINE_LENGTH];
-
+ char linecopy[MAX_LINE_LENGTH];
  DIR *dir;
 
  //this tells you the index at which files start
@@ -555,20 +597,29 @@ void match_pattern_c(char* argv[], int argc, char* info[]){
             {   
 		if(global_isThereI){
 		  if(global_isThereW){
-		   if(strcasestr(line,pattern) != NULL){
-			char *result = strcasestr(line,pattern);
-			int position = result - line;
-			int patternSize = strlen(pattern);
+		  
+		  strcpy(linecopy, line);		
+			
+		  while(strcasestr(linecopy,pattern) != NULL){
+			char *result = strcasestr(linecopy,pattern);
+			int position = result - linecopy;
+			int patternSize = strlen(pattern);		
 
-			if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-		   	 if(!isalpha(line[position+patternSize]) && !isdigit(line[position+patternSize]) && line[position+patternSize] != '_'){	
-			    //fazer a contagem das linhas que contem pattern
-			    n++;
+			//printf("%c", line[position-1]);
+			//printf("%c", line[position+patternSize]);
+
+			if(!isalpha(linecopy[position-1]) && !isdigit(linecopy[position-1]) && linecopy[position-1] != '_'){
+		   	 if(!isalpha(linecopy[position+patternSize]) && !isdigit(linecopy[position+patternSize]) && linecopy[position+patternSize] != '_'){	
+				n++;
 				
 			 }
 			}
+
+			
+			strncpy(linecopy, &linecopy[position+patternSize], MAX_LINE_LENGTH);
+	              }
 		   }
-		  }
+		
 		  else{
 		   if(strcasestr(line,pattern) != NULL){
 		     //fazer a contagem das linhas que contem pattern
@@ -577,19 +628,27 @@ void match_pattern_c(char* argv[], int argc, char* info[]){
 	          }
 	     	}
 	     	else if(global_isThereW){
-		   if(strstr(line,pattern) != NULL){
-			char *result = strstr(line,pattern);
-			int position = result - line;
-			int patternSize = strlen(pattern);
+		  
+ 		  strcpy(linecopy, line);		
+			
+		  while(strstr(linecopy,pattern) != NULL){
+			char *result = strstr(linecopy,pattern);
+			int position = result - linecopy;
+			int patternSize = strlen(pattern);		
 
-			if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-		   	 if(!isalpha(line[position+patternSize]) && !isdigit(line[position+patternSize]) && line[position+patternSize] != '_'){	
-			    //fazer a contagem das linhas que contem pattern
-		     	    n++;
+			//printf("%c", line[position-1]);
+			//printf("%c", line[position+patternSize]);
+
+			if(!isalpha(linecopy[position-1]) && !isdigit(linecopy[position-1]) && linecopy[position-1] != '_'){
+		   	 if(!isalpha(linecopy[position+patternSize]) && !isdigit(linecopy[position+patternSize]) && linecopy[position+patternSize] != '_'){	
+				
+			   n++;
 				
 			 }
 			}
-		   }
+			
+			strncpy(linecopy, &linecopy[position+patternSize], MAX_LINE_LENGTH);
+	          }
 	     	}
 	     	else{
 		  if(strstr(line,pattern) != NULL){
@@ -628,6 +687,7 @@ char* match_pattern_w(char* argv[], int argc, char* info[]){
  char temp;
  char* pattern = argv[countOptions(argv, argc)+1]; 
  char line[MAX_LINE_LENGTH];
+ char linecopy[MAX_LINE_LENGTH];
 
  DIR *dir;
 
@@ -660,38 +720,18 @@ char* match_pattern_w(char* argv[], int argc, char* info[]){
             else
             {   
 		if(global_isThereI){
-
-		   if(strcasestr(line,pattern) != NULL){
-			char *result = strcasestr(line,pattern);
-			int position = result - line;
-			int patternSize = strlen(pattern);
-
-			if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-		   	 if(!isalpha(line[position+patternSize]) && !isdigit(line[position+patternSize]) && line[position+patternSize] != '_'){	
-				
-				if(argc > fileStartIndex+1){
-		     		  printf("%s:%s\n",file, line);
-		   		}		
-	           	    	
-				else printf("%s\n",line);
-				
-			 }
-			}
-		   }
-
-	         }
-	
-	     	else{
-		  if(strstr(line,pattern) != NULL){
-			char *result = strstr(line,pattern);
-			int position = result - line;
-			int patternSize = strlen(pattern);
+		  strcpy(linecopy, line);		
+			
+		  while(strcasestr(linecopy,pattern) != NULL){
+			char *result = strcasestr(linecopy,pattern);
+			int position = result - linecopy;
+			int patternSize = strlen(pattern);		
 
 			//printf("%c", line[position-1]);
 			//printf("%c", line[position+patternSize]);
 
-			if(!isalpha(line[position-1]) && !isdigit(line[position-1]) && line[position-1] != '_'){
-		   	 if(!isalpha(line[position+patternSize]) && !isdigit(line[position+patternSize]) && line[position+patternSize] != '_'){	
+			if(!isalpha(linecopy[position-1]) && !isdigit(linecopy[position-1]) && linecopy[position-1] != '_'){
+		   	 if(!isalpha(linecopy[position+patternSize]) && !isdigit(linecopy[position+patternSize]) && linecopy[position+patternSize] != '_'){	
 				
 				if(argc > fileStartIndex+1){
 		     		  printf("%s:%s\n",file, line);
@@ -701,6 +741,39 @@ char* match_pattern_w(char* argv[], int argc, char* info[]){
 				
 			 }
 			}
+
+			
+			strncpy(linecopy, &linecopy[position+patternSize], MAX_LINE_LENGTH);
+	          }
+
+	         }
+	
+	     	else{
+			
+		  strcpy(linecopy, line);		
+			
+		  while(strstr(linecopy,pattern) != NULL){
+			char *result = strstr(linecopy,pattern);
+			int position = result - linecopy;
+			int patternSize = strlen(pattern);		
+
+			//printf("%c", line[position-1]);
+			//printf("%c", line[position+patternSize]);
+
+			if(!isalpha(linecopy[position-1]) && !isdigit(linecopy[position-1]) && linecopy[position-1] != '_'){
+		   	 if(!isalpha(linecopy[position+patternSize]) && !isdigit(linecopy[position+patternSize]) && linecopy[position+patternSize] != '_'){	
+				
+				if(argc > fileStartIndex+1){
+		     		  printf("%s:%s\n",file, line);
+		   		}		
+	           	    	
+				else printf("%s\n",line);
+				
+			 }
+			}
+
+			
+			strncpy(linecopy, &linecopy[position+patternSize], MAX_LINE_LENGTH);
 	          }
 	     	}
                 
@@ -724,18 +797,75 @@ char* match_pattern_w(char* argv[], int argc, char* info[]){
  return *info;
 }
 
+void fork_to_directories(char* name){
+ pid_t pid;
+
+ switch(pid){
+
+ case -1:
+ //falhou
+ perror("Fork failed.\n");
+ exit(1);
+ break;
+
+
+ case 0:
+ //código do filho
+ break;
+
+
+ default:
+ //código do paí
+ break;
+
+}
+
+}
+
 //-r
 void match_pattern_r(char* argv[], int argc){
+
+ DIR *dirp;
+ struct dirent *d1;
+ struct stat stat_buf; 
+ char currentfolder[100];
+
+ getcwd(currentfolder, 100);
+ 
+ if ((dirp = opendir(currentfolder)) == NULL) 
+ { 
+  perror("Couldn't open root directory"); 
+  exit(2); 
+ } 
+
+ while((d1 = readdir(dirp)) != NULL){
+
+  lstat(d1->d_name, &stat_buf);
+
+  if(S_ISDIR(stat_buf.st_mode)){
+    printf("found a directory! \n");
+    fork_to_directories(d1->d_name);
+  }
+
+  if(S_ISREG(stat_buf.st_mode)){
+    printf("found a file, will print! \n");
+    //this needs another function
+  }
+
+ }
+
+ closedir(dirp);
+
  return;
 }
 
 //select which function to run
 void parse_option(char* argv[], int argc){
-
  char* info[MAX_LINE_LENGTH];
 
   if(global_isThereR){
-  match_pattern_r(argv, argc);
+    printf("trying to enter r\n");
+    match_pattern_r(argv, argc);
   }
 
   else if(global_isThereL){
@@ -752,9 +882,12 @@ void parse_option(char* argv[], int argc){
 
   else {
 
+   printf("inside parse next to for cycle\n");
+ 
    for(int i = 1; i <= countOptions(argv, argc); i++) {
 
     if(strcmp(argv[i],"-i") == 0){
+     printf("trying to enter i\n");
      match_pattern_i(argv, argc, info);
      break;
     }
