@@ -25,6 +25,8 @@
 
 void parse_option(char* argv[], int argc);
 int main(int argc, char* argv[]);
+void parse_option_without_r(char *argv[], int argc);
+void r_aux_function(char* currentfolder, char* argv[], int argc);
 
 //counts how many options there are
 int countOptions(char* argv[], int argc){
@@ -797,8 +799,10 @@ char* match_pattern_w(char* argv[], int argc, char* info[]){
  return *info;
 }
 
-void fork_to_directories(char* name){
+void fork_to_directories(char* name, char* argv[], int argc){
  pid_t pid;
+
+ pid = fork();
 
  switch(pid){
 
@@ -811,6 +815,7 @@ void fork_to_directories(char* name){
 
  case 0:
  //código do filho
+ r_aux_function(name, argv, argc);
  break;
 
 
@@ -822,15 +827,10 @@ void fork_to_directories(char* name){
 
 }
 
-//-r
-void match_pattern_r(char* argv[], int argc){
-
+void r_aux_function(char* currentfolder, char* argv[], int argc){
  DIR *dirp;
  struct dirent *d1;
- struct stat stat_buf; 
- char currentfolder[100];
-
- getcwd(currentfolder, 100);
+ struct stat stat_buf;
  
  if ((dirp = opendir(currentfolder)) == NULL) 
  { 
@@ -840,23 +840,106 @@ void match_pattern_r(char* argv[], int argc){
 
  while((d1 = readdir(dirp)) != NULL){
 
-  lstat(d1->d_name, &stat_buf);
+  if(strcmp(d1->d_name, "..") == 0 || strcmp(d1->d_name, ".") == 0 || strcmp(d1->d_name, ".git") == 0 || strcmp(d1->d_name, ".gitignore") == 0 || strstr(d1->d_name, ".c") != NULL || strstr(d1->d_name, ".o") != NULL)
+  {
+    continue;
+  }
+
+  printf("%s\n", d1->d_name);
+ 
+  stat(d1->d_name, &stat_buf);
 
   if(S_ISDIR(stat_buf.st_mode)){
     printf("found a directory! \n");
-    fork_to_directories(d1->d_name);
+    fork_to_directories(d1->d_name, argv, argc);
   }
 
   if(S_ISREG(stat_buf.st_mode)){
     printf("found a file, will print! \n");
-    //this needs another function
+    parse_option_without_r(argv, argc);
   }
 
  }
 
  closedir(dirp);
+ return;
+}
+
+//-r
+void match_pattern_r(char* argv[], int argc){
+ char currentfolder[100];
+ char file[100];
+ int foundfile = 0;
+ DIR *dir;
+
+ getcwd(currentfolder, 100);
+
+ if(countFiles(argv, argc) != 0){
+ 
+  int fileStartIndex = countOptions(argv, argc)+2;
+
+  for(int a = fileStartIndex; a < argc; a++){
+   strcpy(file, argv[a]);
+   dir = opendir(file);
+
+   if(dir != NULL) { 
+     r_aux_function(file, argv, argc);
+   }  
+ 
+   else {
+    if(foundfile == 0){
+     parse_option_without_r(argv, argc);
+     foundfile = 1;
+    }
+   }
+ 
+  }
+
+  return;
+ }
+ 
+ r_aux_function(currentfolder, argv, argc);
 
  return;
+}
+
+void parse_option_without_r(char *argv[], int argc){
+  char* info[MAX_LINE_LENGTH];
+
+  if(countOptions(argv, argc) == 1){
+   match_pattern_default(argv, argc);
+  }
+
+  if(global_isThereL){
+   match_pattern_l(argv, argc, info);
+  }
+
+  else if(global_isThereC){
+   match_pattern_c(argv, argc, info);
+  }
+
+  else if(global_isThereN){
+   match_pattern_n(argv, argc, info);
+  }
+
+  else {
+
+   for(int i = 1; i <= countOptions(argv, argc)+1; i++) {
+
+    if(strcmp(argv[i],"-i") == 0){
+     printf("trying to enter i\n");
+     match_pattern_i(argv, argc, info);
+     break;
+    }
+
+    else if(strcmp(argv[i],"-w") == 0){
+     match_pattern_w(argv, argc, info);
+     break;
+    }
+
+   }
+ }
+
 }
 
 //select which function to run
@@ -869,15 +952,15 @@ void parse_option(char* argv[], int argc){
   }
 
   else if(global_isThereL){
-  match_pattern_l(argv, argc, info);
+   match_pattern_l(argv, argc, info);
   }
 
   else if(global_isThereC){
-  match_pattern_c(argv, argc, info);
+   match_pattern_c(argv, argc, info);
   }
 
   else if(global_isThereN){
-  match_pattern_n(argv, argc, info);
+   match_pattern_n(argv, argc, info);
   }
 
   else {
