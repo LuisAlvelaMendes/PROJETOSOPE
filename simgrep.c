@@ -27,6 +27,7 @@ void parse_option(char* argv[], int argc);
 int main(int argc, char* argv[]);
 void parse_option_without_r(char *argv[], int argc);
 void r_aux_function(char* currentfolder, char* argv[], int argc);
+void parse_option_sendfile_r(char *argv[], int argc, char* name);
 
 //counts how many options there are
 int countOptions(char* argv[], int argc){
@@ -100,9 +101,10 @@ void match_pattern_default(char* argv[], int argc){
  char line[MAX_LINE_LENGTH];
 
  DIR *dir;
-
+ 
  //this tells you the index at which files start
  int fileStartIndex = countOptions(argv, argc)+2;
+ 
 
 for(int a = fileStartIndex; a < argc; a++){
 
@@ -134,6 +136,8 @@ for(int a = fileStartIndex; a < argc; a++){
             else
             {   
 		//se na linha que estar a ser analizada se econtra uma ocorrência do pattern, imprimir essa linha.
+
+
                 if(strstr(line,pattern) != NULL){
                     if(argc > fileStartIndex+1){
 			printf("%s:%s\n",file, line);
@@ -159,8 +163,8 @@ for(int a = fileStartIndex; a < argc; a++){
   return;
  }
 
-}
- 
+ }
+
  return;
 }
 
@@ -727,7 +731,7 @@ char* match_pattern_w(char* argv[], int argc, char* info[]){
 		  while(strcasestr(linecopy,pattern) != NULL){
 			char *result = strcasestr(linecopy,pattern);
 			int position = result - linecopy;
-			int patternSize = strlen(pattern);		
+			int patternSize = strlen(pattern);
 
 			//printf("%c", line[position-1]);
 			//printf("%c", line[position+patternSize]);
@@ -815,6 +819,11 @@ void fork_to_directories(char* name, char* argv[], int argc){
 
  case 0:
  //código do filho
+
+ //situar-se no programa
+
+ //realpath
+ 
  r_aux_function(name, argv, argc);
  break;
 
@@ -849,14 +858,14 @@ void r_aux_function(char* currentfolder, char* argv[], int argc){
  
   stat(d1->d_name, &stat_buf);
 
+  if(S_ISREG(stat_buf.st_mode)){
+    printf("found a file, will print! \n");
+    parse_option_sendfile_r(argv, argc, d1->d_name);
+  }
+
   if(S_ISDIR(stat_buf.st_mode)){
     printf("found a directory! \n");
     fork_to_directories(d1->d_name, argv, argc);
-  }
-
-  if(S_ISREG(stat_buf.st_mode)){
-    printf("found a file, will print! \n");
-    parse_option_without_r(argv, argc);
   }
 
  }
@@ -883,7 +892,7 @@ void match_pattern_r(char* argv[], int argc){
    dir = opendir(file);
 
    if(dir != NULL) { 
-     r_aux_function(file, argv, argc);
+    fork_to_directories(file, argv, argc);
    }  
  
    else {
@@ -903,10 +912,15 @@ void match_pattern_r(char* argv[], int argc){
  return;
 }
 
+void parse_option_sendfile_r(char *argv[], int argc, char* name){
+
+}
+
 void parse_option_without_r(char *argv[], int argc){
-  char* info[MAX_LINE_LENGTH];
+ char* info[100];
 
   if(countOptions(argv, argc) == 1){
+   printf("identified the default\n");
    match_pattern_default(argv, argc);
   }
 
@@ -994,6 +1008,8 @@ void parse_option(char* argv[], int argc){
 
 
 int main(int argc, char* argv[]){
+
+setbuf(stdout, NULL);
 
 if(argc == 1){
 
