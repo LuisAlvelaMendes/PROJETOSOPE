@@ -1,6 +1,11 @@
 #include <stdio.h> 
 #include <stdlib.h> 
-#include <pthread.h> 
+#include <pthread.h>
+#include <string.h>
+#include <unistd.h> 
+#include <sys/types.h> 
+#include <sys/stat.h> 
+#include <sys/file.h> 
 #define MAX_ROOM_SEATS 9999
 #define MAX_CLI_SEATS 99
 #define WIDTH_PID 5
@@ -14,7 +19,7 @@ struct Request
 	int nrIntendedSeats;
 	int idPreferedSeats[MAX_CLI_SEATS];
 	int answered; //tells you whether it has been answered or not
-}
+};
 
 struct Request global_current_Request; //the request that will be handled one at a time by the program, the main function receives a request from the FIFO, puts it here if the previous one was answered, and then the threads will take it on and try to reserve a seat.
 
@@ -33,9 +38,9 @@ int main(int argc, char* argv[]){
 	}
 
 	//2. Getting args
-	int num_room_seats = (int) argv[1];
-    	int num_ticket_offices = (int) argv[2];
-	int open_time = (int) argv[3];
+	int num_room_seats = atoi(argv[1]);
+    	int num_ticket_offices = atoi(argv[2]);
+	int open_time = atoi(argv[3]);
 
 	//3. Making Fifo
 	mkfifo("/tmp/requests", 0666);
