@@ -85,6 +85,43 @@ void *reserveSeat(void *threadId)
 	pthread_exit(NULL);
 }
 
+int validate_request_parameters(struct Request r1, int num_room_seats){
+	
+	if(r1.nrIntendedSeats > MAX_CLI_SEATS || r1.nrIntendedSeats < 1){
+		printf("Invalid number of intended seats.\n");
+		return -1;
+	}
+	
+	//checking the amount of ids is equal to the number of intended seats, and if each ID is valid.
+
+	int countIDs = 0;
+	
+	for(unsigned int i = 0; i < r1.nrIntendedSeats; i++){	
+		if(r1.idPreferedSeats[i] == 0){
+			//preferedSeats will be all zeros from the point where you no longer have any more seat IDs.		
+			break;
+		} else {
+			countIDs++;
+		}
+
+		if(r1.idPreferedSeats[i] > num_room_seats || r1.idPreferedSeats[i] < 0){
+			//checking identifiers for each seat at the same time
+			printf("Invalid seat identifier %d.\n", r1.idPreferedSeats[i]);
+			return -3;
+		}
+	}
+
+	if(countIDs < r1.nrIntendedSeats || countIDs > MAX_CLI_SEATS){
+		printf("Invalid size for prefered seats.\n");		
+		return -2;
+	}
+
+	if(r1.answered != 'y' && r1.answered != 'n'){
+		printf("Invalid answer character '%c'\n", r1.answered);
+		return -4;
+	}
+}
+
 int main(int argc, char* argv[]){
 
 	int fd, n;
@@ -136,14 +173,20 @@ int main(int argc, char* argv[]){
 	if ((fd=open("/tmp/requests",O_RDONLY)) !=-1) printf("FIFO '/tmp/requests' openned in READONLY mode\n"); 
 
 	do { 
-    		n=read(fd,str,MAX_MSG_LEN); 
-		if (n>0) printf("%s has arrived\n",str);
-	} while (strcmp(str,"SHUTDOWN")!=0); 
+		//reading from FIFO    		
+		n=read(fd,&global_current_Request,sizeof(struct Request)); 
+		
+		if (n>0) printf("%d client request has arrived\n", global_current_Request.idClient);
+		
+		//checking if what was read has valid parameters
+		validate_request_parameters(global_current_Request, num_room_seats);
+
+	} while (global_current_Request.idClient != -1); 
   	
 	close(fd); 
 
 	if (unlink("/tmp/requests")<0) printf("Error when destroying FIFO '/tmp/requests'\n"); 
-	else printf("FIFO '/tmp/requests' has been destroyed\n"); 	
+	else printf("FIFO '/tmp/requests' has been destroyed\n"); 
 
 	pthread_exit(NULL); 
 

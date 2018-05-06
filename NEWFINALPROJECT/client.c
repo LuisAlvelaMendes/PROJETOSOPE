@@ -44,18 +44,24 @@ int main(int argc, char* argv[]){
 	//2. Getting args
 	int time_out = atoi(argv[1]);
     	int num_wanted_seats = atoi(argv[2]);
-	int pref_seat_list [MAX_CLI_SEATS];
+	int pref_seat_list [MAX_CLI_SEATS] = {0};
+	int zeros[MAX_CLI_SEATS] = {0};
 
 	// - Parsing preferences
 	char* token = malloc(10*sizeof(char));
 	token = strtok(argv[3]," ");
-	int i = 0;
+	int countingIDs = 0;
 	
         while(token != NULL) {
-		pref_seat_list[i] = atoi(token);
+		pref_seat_list[countingIDs] = atoi(token);
                 token = strtok(NULL," ");
-		i++;
-	}	
+		countingIDs++;
+	}
+
+	//making sure from the point where we no longer have IDs it'll be all zeros
+	for(unsigned int i = countingIDs; i < MAX_CLI_SEATS; i++){
+		pref_seat_list[i] = 0;
+	}
 
 	char fifoname[20];
 
@@ -65,10 +71,20 @@ int main(int argc, char* argv[]){
 	// - Initializing Request
 	request_1.idClient = getpid();
 	request_1.nrIntendedSeats = num_wanted_seats;
-	memcpy(request_1.idPreferedSeats, pref_seat_list, MAX_CLI_SEATS);
+	
+	//intializing the request array at all zeros just in case
+	for(unsigned int i = 0; i < MAX_CLI_SEATS; i++){
+		request_1.idPreferedSeats[i] = zeros[i];
+	}
+	
+	//passing over the intended elements
+	for(unsigned int i = 0; i < MAX_CLI_SEATS; i++){
+		request_1.idPreferedSeats[i] = pref_seat_list[i];
+	}
+
 	request_1.answered = 'n';
 
-	//3. Making Fifo
+	//3. Making Fifo for ANSWER
 	if (mkfifo(fifoname,0660)<0) 
 		if (errno==EEXIST) printf("FIFO already exists\n"); 
 		else printf("Can't create FIFO\n"); 
@@ -77,11 +93,22 @@ int main(int argc, char* argv[]){
 	//4. Send a Request
 	if ((fd=open("/tmp/requests",O_WRONLY)) !=-1) printf("FIFO '/tmp/requests' openned in WRITEONLY mode\n"); 
 
-	/*do { 
-		//SEND REQUEST CODE
-    		n=write(fd,str,MAX_MSG_LEN); 
-		if (n>0) printf("%s has arrived\n",str);
-	} while (strcmp(str,"SHUTDOWN")!=0);*/ 
+	//Write to FIFO
+    	n=write(fd,&request_1,sizeof(struct Request)); 
+
+	if (n>0) printf("%d request has been sent.\n", request_1.idClient); 
+
+	sleep(15);
+
+	printf("Now sending request -1, server should shutdown and destroy the request FIFO.\n");
+
+	struct Request end;
+
+	end.idClient = -1;
+
+	n=write(fd,&end,sizeof(struct Request)); 
+
+	//-- WAIT FOR RESPONSE HERE --
   	
 	close(fd); 
 
