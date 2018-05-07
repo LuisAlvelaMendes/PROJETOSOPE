@@ -156,7 +156,7 @@ void *reserveSeat(void *threadId)
 	
 	pthread_cond_signal(&request_cond);
 	pthread_mutex_unlock(&request_lock);
-	
+
 	pthread_exit(NULL);
 }
 
@@ -195,6 +195,19 @@ int validate_request_parameters(struct Request r1, int num_room_seats){
 		printf("Invalid answer character '%c'\n", r1.answered);
 		return -4;
 	}
+
+	int num_occupied = 0;
+
+	for(int i=0; i < num_room_seats;i++){
+		if(seats[i].occupied == 'y'){
+			num_occupied++;
+		}
+	}
+
+	if(num_occupied == num_room_seats){
+		printf("Room full");
+		return -6;
+	}
 	
 	//valid request
 	return 0;
@@ -230,7 +243,7 @@ int main(int argc, char* argv[]){
 
 		currentSeat.seatId = (i+1);
 		currentSeat.clientId = 0;
-		currentSeat.occupied = 'n';
+		currentSeat.occupied = 'y';
 		
 		seats[i] = currentSeat;
 	}
