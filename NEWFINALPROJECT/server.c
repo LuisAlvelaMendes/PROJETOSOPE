@@ -90,7 +90,7 @@ void freeSeat(struct Seat *seats, int seatNum, size_t seatsSize){
 void *reserveSeat(void *threadId)
 {	
 	//syncing with main
-	pthread_mutex_lock(&threads_lock);
+	/*pthread_mutex_lock(&threads_lock);
 	
 	write(STDOUT_FILENO, "\n in thread lock", 40);	
 
@@ -118,7 +118,7 @@ void *reserveSeat(void *threadId)
 
 					int seatNum = global_current_Request.idPreferedSeats[i];
 					
-					if(seatNum == 0){
+					if(seatNum = 0){
 						break;
 					}
 
@@ -157,6 +157,8 @@ void *reserveSeat(void *threadId)
 	pthread_cond_signal(&request_cond);
 	pthread_mutex_unlock(&request_lock);
 
+	pthread_mutex_unlock(&request_lock);*/
+	
 	pthread_exit(NULL);
 }
 
