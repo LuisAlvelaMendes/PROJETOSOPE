@@ -112,32 +112,39 @@ void *reserveSeat(void *threadId)
 			int numValidatedSeats = 0;
 			int validatedIds[global_current_Request.nrIntendedSeats];
 			int clientID = global_current_Request.idClient;
-		
-			for(unsigned int i = 0; i < MAX_CLI_SEATS; i++){
-
-				int seatNum = global_current_Request.idPreferedSeats[i];
-
-				char stringtest[100];
-		
-				sprintf(stringtest, "\n seatNum:%d", seatNum);			
 			
-				write(STDOUT_FILENO, stringtest, 30);	
+			for(unsigned int a = 0; a < global_current_Request.nrIntendedSeats; a++){
+				for(unsigned int i = 0; i < MAX_CLI_SEATS; i++){
+
+					int seatNum = global_current_Request.idPreferedSeats[i];
+					
+					if(seatNum == 0){
+						break;
+					}
+
+					char stringtest[100];
+		
+					sprintf(stringtest, "\n seatNum:%d", seatNum);			
+			
+					write(STDOUT_FILENO, stringtest, 30);	
 				
-				if(isSeatFree(seats, seatNum, num_room_seats)){
-					write(STDOUT_FILENO, "\n booking seat", 40);
-					bookSeat(seats, seatNum, clientID, num_room_seats);
-					validatedIds[numValidatedSeats] = seatNum;
-					numValidatedSeats++;	
+					if(isSeatFree(seats, seatNum, num_room_seats)){
+						write(STDOUT_FILENO, "\n booking seat", 40);
+						bookSeat(seats, seatNum, clientID, num_room_seats);
+						validatedIds[numValidatedSeats] = seatNum;
+						numValidatedSeats++;
+						break;	
+					}
 				}
-			}	
-	
+			}
+
 			// - In case you couldn't validate every seat the costumer wanted, then free all of them.
 			if(numValidatedSeats < global_current_Request.nrIntendedSeats){
 				for(unsigned int a = 0; a < numValidatedSeats; a++){
 					write(STDOUT_FILENO, "\n can't book", 40);
 					freeSeat(seats, validatedIds[a], num_room_seats);
 				}
-			}
+			}	
 			
 			for(unsigned int a = 0; a < numValidatedSeats; a++){
 				write(STDOUT_FILENO, "\n validated", 40);
