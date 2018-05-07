@@ -26,9 +26,6 @@ pthread_mutex_t seats_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t request_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t threads_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t threads_cond = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t threads_aux_lock_1 = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t threads_aux_lock_2 = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t threads_aux_lock_3 = PTHREAD_MUTEX_INITIALIZER;
 
 struct Seat
 {
@@ -54,8 +51,6 @@ struct Seat *seats;
 int num_room_seats = 0;
 
 int isSeatFree(struct Seat *seats, int seatNum, size_t seatsSize){	
-	
-	pthread_mutex_lock(&threads_aux_lock_1);
 
 	for(unsigned int i = 0; i < seatsSize; i++){
 		if(seats[i].seatId == seatNum && seats[i].occupied == 'n'){
@@ -63,14 +58,10 @@ int isSeatFree(struct Seat *seats, int seatNum, size_t seatsSize){
 		}
 	}
 
-	pthread_mutex_unlock(&threads_aux_lock_1);
-
 	return 0;
 }
 
 void bookSeat(struct Seat *seats, int seatNum, int clientId, size_t seatsSize){
-
-	pthread_mutex_lock(&threads_aux_lock_2);
 	
 	for(unsigned int i = 0; i < seatsSize; i++){
 		if(seats[i].seatId == seatNum){
@@ -79,15 +70,11 @@ void bookSeat(struct Seat *seats, int seatNum, int clientId, size_t seatsSize){
 			return;
 		}
 	}
-	
-	pthread_mutex_unlock(&threads_aux_lock_2);
 
 }
 
 void freeSeat(struct Seat *seats, int seatNum, size_t seatsSize){
  //while answering the request, goes through the prefered seat IDs array every time and if it can't book any of them at one point, frees everything, the request is invalid.
-
-	pthread_mutex_lock(&threads_aux_lock_3);
 
 	for(unsigned int i = 0; i < seatsSize; i++){
 		if(seats[i].seatId == seatNum){
@@ -96,8 +83,6 @@ void freeSeat(struct Seat *seats, int seatNum, size_t seatsSize){
 			return;
 		}
 	}
-
-	pthread_mutex_unlock(&threads_aux_lock_3);
 
 }
 
@@ -119,6 +104,8 @@ void *reserveSeat(void *threadId)
 	pthread_mutex_unlock(&threads_lock);
 	
 	pthread_mutex_lock(&request_lock);
+
+		pthread_mutex_lock(&seats_lock);
 			
 			write(STDOUT_FILENO, "\n inside lock seats", 40);			
 	
@@ -136,18 +123,9 @@ void *reserveSeat(void *threadId)
 			
 				write(STDOUT_FILENO, stringtest, 30);	
 				
-				pthread_mutex_lock(&seats_lock);
-				
 				if(isSeatFree(seats, seatNum, num_room_seats)){
-
-					pthread_mutex_unlock(&seats_lock);
-
 					write(STDOUT_FILENO, "\n booking seat", 40);
-
-					pthread_mutex_lock(&seats_lock);
 					bookSeat(seats, seatNum, clientID, num_room_seats);
-					pthread_mutex_unlock(&seats_lock);
-
 					validatedIds[numValidatedSeats] = seatNum;
 					numValidatedSeats++;	
 				}
@@ -157,10 +135,7 @@ void *reserveSeat(void *threadId)
 			if(numValidatedSeats < global_current_Request.nrIntendedSeats){
 				for(unsigned int a = 0; a < numValidatedSeats; a++){
 					write(STDOUT_FILENO, "\n can't book", 40);
-					
-					pthread_mutex_lock(&seats_lock);
 					freeSeat(seats, validatedIds[a], num_room_seats);
-					pthread_mutex_unlock(&seats_lock);
 				}
 			}
 			
