@@ -24,6 +24,8 @@ pthread_cond_t  seats_cond = PTHREAD_COND_INITIALIZER;
 pthread_cond_t  request_cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t seats_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t request_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t threads_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t threads_cond = PTHREAD_COND_INITIALIZER;
 
 struct Seat
 {
@@ -86,16 +88,26 @@ void freeSeat(struct Seat *seats, int seatNum, size_t seatsSize){
 
 
 void *reserveSeat(void *threadId)
-{
-	if(global_current_Request.idClient = 0){
-		pthread_exit(NULL);
+{	
+	//syncing with main
+	pthread_mutex_lock(&threads_lock);
+	
+	write(STDOUT_FILENO, "\n in thread lock", 40);	
+
+	while(global_current_Request.idClient == 0){
+		write(STDOUT_FILENO, "\n waiting", 40);		
+		pthread_cond_wait(&threads_cond, &threads_lock);
 	}
+
+	write(STDOUT_FILENO, "\n out thread lock", 40);
+	
+	pthread_mutex_unlock(&threads_lock);
 	
 	pthread_mutex_lock(&request_lock);
 	
 		pthread_mutex_lock(&seats_lock);
 			
-			write(STDOUT_FILENO, "\n inside lock", 40);			
+			write(STDOUT_FILENO, "\n inside lock seats", 40);			
 	
 			int numValidatedSeats = 0;
 			int validatedIds[global_current_Request.nrIntendedSeats];
@@ -103,7 +115,13 @@ void *reserveSeat(void *threadId)
 		
 			for(unsigned int i = 0; i < MAX_CLI_SEATS; i++){
 
-				int seatNum = global_current_Request.idPreferedSeats[i];	
+				int seatNum = global_current_Request.idPreferedSeats[i];
+
+				char stringtest[100];
+		
+				sprintf(stringtest, "\n seatNum:%d", seatNum);			
+			
+				write(STDOUT_FILENO, stringtest, 30);	
 
 				if(isSeatFree(seats, seatNum, num_room_seats)){
 					write(STDOUT_FILENO, "\n booking seat", 40);
@@ -178,7 +196,6 @@ int validate_request_parameters(struct Request r1, int num_room_seats){
 int main(int argc, char* argv[]){
 
 	int fd, n;
-	char str[MAX_MSG_LEN]; 
 	
 	//1. Checking Input	
 	if(argc < 4){
@@ -259,11 +276,22 @@ int main(int argc, char* argv[]){
 		}
 
 		global_current_Request.answered = tempRequest.answered;
+
+		//syncing with threads
+		pthread_mutex_lock(&threads_lock);		
+		pthread_cond_signal(&threads_cond);
+		pthread_mutex_unlock(&threads_lock);
 	
 		// - Wait until the request has been answered.
 		while(global_current_Request.answered != 'y'){		
 			pthread_cond_wait(&request_cond, &request_lock);
 		}
+
+		//placing the request buffer back to all zeroes once he leaves the wait (request answered)
+		global_current_Request.idClient = 0;
+		global_current_Request.nrIntendedSeats = 0;
+		memset(global_current_Request.idPreferedSeats, 0, MAX_CLI_SEATS);
+		global_current_Request.answered = 'n';
 		
 		pthread_mutex_unlock(&request_lock);
 

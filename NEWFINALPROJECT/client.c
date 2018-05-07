@@ -31,7 +31,6 @@ struct Request
 int main(int argc, char* argv[]){
 
 	int fd, n;
-	char str[MAX_MSG_LEN]; 
 	struct Request request_1;
 	
 	//1. Checking Input	
@@ -58,7 +57,7 @@ int main(int argc, char* argv[]){
 		countingIDs++;
 	}
 
-	//making sure from the point where we no longer have IDs it'll be all zeros
+	//making sure from the point where we no longer have IDs it'll be all zeros, that portion of the array is unused.
 	for(unsigned int i = countingIDs; i < MAX_CLI_SEATS; i++){
 		pref_seat_list[i] = 0;
 	}
