@@ -26,6 +26,7 @@ pthread_mutex_t seats_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t request_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t threads_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t threads_cond = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t seats_aux_lock = PTHREAD_MUTEX_INITIALIZER;
 
 struct Seat
 {
@@ -86,79 +87,97 @@ void freeSeat(struct Seat *seats, int seatNum, size_t seatsSize){
 
 }
 
+void clear_Request_Buffer(){
+	global_current_Request.idClient = 0;
+	global_current_Request.nrIntendedSeats = 0;
+	memset(global_current_Request.idPreferedSeats, 0, MAX_CLI_SEATS);
+	global_current_Request.answered = 'n';
+}
 
 void *reserveSeat(void *threadId)
 {	
-	//syncing with main
+	//syncing with the start of main
 	pthread_mutex_lock(&threads_lock);
 	
-	write(STDOUT_FILENO, "\n in thread lock", 40);	
+		write(STDOUT_FILENO, "\n in thread lock", 40);	
 
-	while(global_current_Request.idClient == 0){
-		write(STDOUT_FILENO, "\n waiting", 40);		
-		pthread_cond_wait(&threads_cond, &threads_lock);
-	}
+		while(global_current_Request.idClient == 0){
+			write(STDOUT_FILENO, "\n waiting", 40);		
+			pthread_cond_wait(&threads_cond, &threads_lock);
+		}
 
-	write(STDOUT_FILENO, "\n out thread lock", 40);
+		write(STDOUT_FILENO, "\n out thread lock", 40);
 	
 	pthread_mutex_unlock(&threads_lock);
+
+	//taking the actual request from the buffer (leaving it empty)
+	//pthread_mutex_lock(&request_lock);
 	
-	pthread_mutex_lock(&request_lock);
-
-		pthread_mutex_lock(&seats_lock);
-			
-			write(STDOUT_FILENO, "\n inside lock seats", 40);			
+		struct Request r1 = global_current_Request;
 	
-			int numValidatedSeats = 0;
-			int validatedIds[global_current_Request.nrIntendedSeats];
-			int clientID = global_current_Request.idClient;
+		clear_Request_Buffer();
+	
+	//pthread_cond_signal(&request_cond);
+	//pthread_mutex_unlock(&request_lock);
+
+	write(STDOUT_FILENO, "\n executing reserve", 50);			
+	
+	int numValidatedSeats = 0;
+	int validatedIds[r1.nrIntendedSeats];
+	int clientID = r1.idClient;
 			
-			for(unsigned int a = 0; a < global_current_Request.nrIntendedSeats; a++){
-				for(unsigned int i = 0; i < MAX_CLI_SEATS; i++){
-
-					int seatNum = global_current_Request.idPreferedSeats[i];
-					
-					if(seatNum == 0){
-						break;
-					}
-
-					char stringtest[100];
+	for(unsigned int a = 0; a < r1.nrIntendedSeats; a++){
 		
-					sprintf(stringtest, "\n seatNum:%d", seatNum);			
+		pthread_mutex_lock(&seats_lock);
+						
+		for(unsigned int i = 0; i < MAX_CLI_SEATS; i++){
+
+			int seatNum = r1.idPreferedSeats[i];
+					
+			if(seatNum == 0){
+				//reached the unused portion of the array.
+				break;
+			}
+
+			char stringtest[100];
+		
+			sprintf(stringtest, "\n seatNum:%d", seatNum);			
 			
-					write(STDOUT_FILENO, stringtest, 30);	
-				
+			write(STDOUT_FILENO, stringtest, 30);	
+			
+			//pthread_mutex_lock(&seats_aux_lock); //closing due to isSeatFree and bookSeat having operations with seats array.
 					if(isSeatFree(seats, seatNum, num_room_seats)){
 						write(STDOUT_FILENO, "\n booking seat", 40);
 						bookSeat(seats, seatNum, clientID, num_room_seats);
 						validatedIds[numValidatedSeats] = seatNum;
 						numValidatedSeats++;
+			//pthread_mutex_unlock(&seats_aux_lock);
 						break;	
 					}
-				}
-			}
-
-			// - In case you couldn't validate every seat the costumer wanted, then free all of them.
-			if(numValidatedSeats < global_current_Request.nrIntendedSeats){
-				for(unsigned int a = 0; a < numValidatedSeats; a++){
-					write(STDOUT_FILENO, "\n can't book", 40);
-					freeSeat(seats, validatedIds[a], num_room_seats);
-				}
-			}	
-			
-			for(unsigned int a = 0; a < numValidatedSeats; a++){
-				write(STDOUT_FILENO, "\n validated", 40);
-			}
-
+		}
+		
 		pthread_mutex_unlock(&seats_lock);
-	
-	global_current_Request.answered = 'y';
-	
-	pthread_cond_signal(&request_cond);
-	pthread_mutex_unlock(&request_lock);
+	}
 
-	pthread_mutex_unlock(&request_lock);
+	// - In case you couldn't validate every seat the costumer wanted, then free all of them.
+	if(numValidatedSeats < r1.nrIntendedSeats){
+		for(unsigned int a = 0; a < numValidatedSeats; a++){
+			write(STDOUT_FILENO, "\n can't book", 40);
+
+			pthread_mutex_lock(&seats_aux_lock);
+				freeSeat(seats, validatedIds[a], num_room_seats);
+			pthread_mutex_unlock(&seats_aux_lock);
+		}
+	}	
+			
+	for(unsigned int a = 0; a < numValidatedSeats; a++){
+		write(STDOUT_FILENO, "\n validated", 40);
+	}
 	
+	r1.answered = 'y';
+	
+	//<function for sending the request here>	
+
 	pthread_exit(NULL);
 }
 
@@ -207,7 +226,7 @@ int validate_request_parameters(struct Request r1, int num_room_seats){
 	}
 
 	if(num_occupied == num_room_seats){
-		printf("Room full");
+		printf("Room full.\n");
 		return -6;
 	}
 	
@@ -232,10 +251,7 @@ int main(int argc, char* argv[]){
 	int open_time = atoi(argv[3]);
 
 	// - Initializing Request Buffer:
-	global_current_Request.idClient = 0;
-	global_current_Request.nrIntendedSeats = 0;
-	memset(global_current_Request.idPreferedSeats, 0, MAX_CLI_SEATS);
-	global_current_Request.answered = 'n';
+	clear_Request_Buffer();
 
 	// - Initializing Seats array and Seat objects
 	seats = (struct Seat*)malloc(sizeof(struct Seat)*num_room_seats);
@@ -288,37 +304,39 @@ int main(int argc, char* argv[]){
 		}
 
 		// - Placing the request in the buffer, locking it between critical zone.		 
-		pthread_mutex_lock(&request_lock);
+		//pthread_mutex_lock(&request_lock);
   		
-		global_current_Request.idClient = tempRequest.idClient;
-		global_current_Request.nrIntendedSeats = tempRequest.nrIntendedSeats;
+			global_current_Request.idClient = tempRequest.idClient;
+			global_current_Request.nrIntendedSeats = tempRequest.nrIntendedSeats;
 
-		for(unsigned int i = 0; i < MAX_CLI_SEATS; i++){
-			global_current_Request.idPreferedSeats[i] = tempRequest.idPreferedSeats[i];
-		}
+			for(unsigned int i = 0; i < MAX_CLI_SEATS; i++){
+				global_current_Request.idPreferedSeats[i] = tempRequest.idPreferedSeats[i];
+			}
 
-		global_current_Request.answered = tempRequest.answered;
+			global_current_Request.answered = tempRequest.answered;
 
-		//syncing with threads
-		pthread_mutex_lock(&threads_lock);		
-		pthread_cond_signal(&threads_cond);
-		pthread_mutex_unlock(&threads_lock);
+			//syncing with threads, letting them execute
+			pthread_mutex_lock(&threads_lock);		
+				pthread_cond_signal(&threads_cond);
+			pthread_mutex_unlock(&threads_lock);
 	
-		// - Wait until the request has been answered.
-		while(global_current_Request.answered != 'y'){		
-			pthread_cond_wait(&request_cond, &request_lock);
-		}
-
-		//placing the request buffer back to all zeroes once he leaves the wait (request answered)
-		global_current_Request.idClient = 0;
-		global_current_Request.nrIntendedSeats = 0;
-		memset(global_current_Request.idPreferedSeats, 0, MAX_CLI_SEATS);
-		global_current_Request.answered = 'n';
-		
-		pthread_mutex_unlock(&request_lock);
+			// - Wait until the request has been removed by one of the threads.
+			while(global_current_Request.nrIntendedSeats != 0){		
+				//pthread_cond_wait(&request_cond, &request_lock);
+				sleep(1);
+			}
+	
+			//placing the request buffer back to all zeroes once he leaves the wait (request taken by threads)
+			clear_Request_Buffer();
+	
+		//pthread_mutex_unlock(&request_lock);
 
 	} while (global_current_Request.idClient != -1); 
   	
+	for(int k=0; k <= num_ticket_offices; k++) {
+		pthread_join(tid[k], NULL); //wait for threads to be done
+	}	
+
 	close(fd);
 
 	if (unlink("/tmp/requests")<0) printf("Error when destroying FIFO '/tmp/requests'\n"); 
