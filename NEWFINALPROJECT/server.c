@@ -96,17 +96,21 @@ void clear_Request_Buffer(){
 
 void *reserveSeat(void *threadId)
 {	
+	char message[41];	
+
 	//syncing with the start of main
 	pthread_mutex_lock(&threads_lock);
-	
-		write(STDOUT_FILENO, "\n in thread lock", 40);	
+		sprintf(message, "\n in thread lock");
+		write(STDOUT_FILENO, message, 16);	
 
 		while(global_current_Request.idClient == 0){
-			write(STDOUT_FILENO, "\n waiting", 40);		
+			sprintf(message, "\n waiting");
+			write(STDOUT_FILENO, message, 9);		
 			pthread_cond_wait(&threads_cond, &threads_lock);
 		}
 
-		write(STDOUT_FILENO, "\n out thread lock", 40);
+		sprintf(message, "\n out thread lock");
+		write(STDOUT_FILENO, message, 17);
 	
 	pthread_mutex_unlock(&threads_lock);
 
@@ -119,8 +123,9 @@ void *reserveSeat(void *threadId)
 	
 	//pthread_cond_signal(&request_cond);
 	//pthread_mutex_unlock(&request_lock);
-
-	write(STDOUT_FILENO, "\n executing reserve", 50);			
+	
+	sprintf(message, "\n executing reserve");
+	write(STDOUT_FILENO, message, 19);			
 	
 	int numValidatedSeats = 0;
 	int validatedIds[r1.nrIntendedSeats];
@@ -138,19 +143,24 @@ void *reserveSeat(void *threadId)
 				//reached the unused portion of the array.
 				break;
 			}
-
-			char stringtest[100];
-		
-			sprintf(stringtest, "\n seatNum:%d", seatNum);			
 			
-			write(STDOUT_FILENO, stringtest, 30);	
+			sprintf(message, "\n seatNum:%d", seatNum);
+			if(seatNum >= 10)			
+			write(STDOUT_FILENO, message, 13);
+			else
+			write(STDOUT_FILENO, message, 12);	
 			
 			//pthread_mutex_lock(&seats_aux_lock); //closing due to isSeatFree and bookSeat having operations with seats array.
 					if(isSeatFree(seats, seatNum, num_room_seats)){
-						write(STDOUT_FILENO, "\n booking seat", 40);
+						sprintf(message, "\n booking seat");
+						write(STDOUT_FILENO, message, 14);
 						bookSeat(seats, seatNum, clientID, num_room_seats);
-						validatedIds[numValidatedSeats] = seatNum;
-						numValidatedSeats++;
+
+						pthread_mutex_lock(&seats_aux_lock);
+							validatedIds[numValidatedSeats] = seatNum;
+							numValidatedSeats++;
+						pthread_mutex_unlock(&seats_aux_lock);
+
 			//pthread_mutex_unlock(&seats_aux_lock);
 						break;	
 					}
@@ -158,20 +168,27 @@ void *reserveSeat(void *threadId)
 		
 		pthread_mutex_unlock(&seats_lock);
 	}
+		
+	sprintf(message, "\n valid:%d intended:%d", numValidatedSeats, r1.nrIntendedSeats);
+	write(STDOUT_FILENO, message, 20);		
 
 	// - In case you couldn't validate every seat the costumer wanted, then free all of them.
 	if(numValidatedSeats < r1.nrIntendedSeats){
 		for(unsigned int a = 0; a < numValidatedSeats; a++){
-			write(STDOUT_FILENO, "\n can't book", 40);
-
 			pthread_mutex_lock(&seats_aux_lock);
+				sprintf(message, "\n free seat");
+				write(STDOUT_FILENO, message, 11);
 				freeSeat(seats, validatedIds[a], num_room_seats);
 			pthread_mutex_unlock(&seats_aux_lock);
 		}
 	}	
 			
 	for(unsigned int a = 0; a < numValidatedSeats; a++){
-		write(STDOUT_FILENO, "\n validated", 40);
+		sprintf(message, "\n validated seat %d", validatedIds[a]);
+		if(validatedIds[a] >= 10)
+		write(STDOUT_FILENO, message, 20);
+		else
+		write(STDOUT_FILENO, message, 18);
 	}
 	
 	r1.answered = 'y';
