@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <errno.h> 
+#include <time.h>
 #define MAX_MSG_LEN 20  
 #define MAX_ROOM_SEATS 9999
 #define MAX_CLI_SEATS 99
@@ -16,7 +17,11 @@
 #define WIDTH_PID 5
 #define WIDTH_XXNN 5
 #define WIDTH_SEAT 4
-#define DELAY()
+#define SIZE_OF_HEADER 13
+#define SIZE_OF_SECTION 5
+#define SIZE_OF_ERROR_TAG 3
+#define SIZE_OF_END_NOTE_HEADER 6
+#define DELAY() sleep(0.5)
 
 //utilizar tanto mutex como variavéis de condição
 
@@ -25,6 +30,8 @@ pthread_cond_t  request_cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t seats_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t request_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t threads_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t end_ticketer_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t delay_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t threads_cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t seats_aux_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -59,6 +66,10 @@ int isSeatFree(struct Seat *seats, int seatNum, size_t seatsSize){
 		}
 	}
 
+	pthread_mutex_lock(&delay_lock);
+		DELAY();
+	pthread_mutex_unlock(&delay_lock);
+
 	return 0;
 }
 
@@ -72,6 +83,9 @@ void bookSeat(struct Seat *seats, int seatNum, int clientId, size_t seatsSize){
 		}
 	}
 
+	pthread_mutex_lock(&delay_lock);
+		DELAY();
+	pthread_mutex_unlock(&delay_lock);
 }
 
 void freeSeat(struct Seat *seats, int seatNum, size_t seatsSize){
@@ -85,6 +99,9 @@ void freeSeat(struct Seat *seats, int seatNum, size_t seatsSize){
 		}
 	}
 
+	pthread_mutex_lock(&delay_lock);
+		DELAY();
+	pthread_mutex_unlock(&delay_lock);
 }
 
 void clear_Request_Buffer(){
@@ -94,110 +111,6 @@ void clear_Request_Buffer(){
 	global_current_Request.answered = 'n';
 }
 
-void *reserveSeat(void *threadId)
-{	
-	char message[41];	
-
-	//syncing with the start of main
-	pthread_mutex_lock(&threads_lock);
-		sprintf(message, "\n in thread lock");
-		write(STDOUT_FILENO, message, 16);	
-
-		while(global_current_Request.idClient == 0){
-			sprintf(message, "\n waiting");
-			write(STDOUT_FILENO, message, 9);		
-			pthread_cond_wait(&threads_cond, &threads_lock);
-		}
-
-		sprintf(message, "\n out thread lock");
-		write(STDOUT_FILENO, message, 17);
-	
-	pthread_mutex_unlock(&threads_lock);
-
-	//taking the actual request from the buffer (leaving it empty)
-	//pthread_mutex_lock(&request_lock);
-	
-		struct Request r1 = global_current_Request;
-	
-		clear_Request_Buffer();
-	
-	//pthread_cond_signal(&request_cond);
-	//pthread_mutex_unlock(&request_lock);
-	
-	sprintf(message, "\n executing reserve");
-	write(STDOUT_FILENO, message, 19);			
-	
-	int numValidatedSeats = 0;
-	int validatedIds[r1.nrIntendedSeats];
-	int clientID = r1.idClient;
-			
-	for(unsigned int a = 0; a < r1.nrIntendedSeats; a++){
-		
-		pthread_mutex_lock(&seats_lock);
-						
-		for(unsigned int i = 0; i < MAX_CLI_SEATS; i++){
-
-			int seatNum = r1.idPreferedSeats[i];
-					
-			if(seatNum == 0){
-				//reached the unused portion of the array.
-				break;
-			}
-			
-			sprintf(message, "\n seatNum:%d", seatNum);
-			if(seatNum >= 10)			
-			write(STDOUT_FILENO, message, 13);
-			else
-			write(STDOUT_FILENO, message, 12);	
-			
-			//pthread_mutex_lock(&seats_aux_lock); //closing due to isSeatFree and bookSeat having operations with seats array.
-					if(isSeatFree(seats, seatNum, num_room_seats)){
-						sprintf(message, "\n booking seat");
-						write(STDOUT_FILENO, message, 14);
-						bookSeat(seats, seatNum, clientID, num_room_seats);
-
-						pthread_mutex_lock(&seats_aux_lock);
-							validatedIds[numValidatedSeats] = seatNum;
-							numValidatedSeats++;
-						pthread_mutex_unlock(&seats_aux_lock);
-
-			//pthread_mutex_unlock(&seats_aux_lock);
-						break;	
-					}
-		}
-		
-		pthread_mutex_unlock(&seats_lock);
-	}
-		
-	sprintf(message, "\n valid:%d intended:%d", numValidatedSeats, r1.nrIntendedSeats);
-	write(STDOUT_FILENO, message, 20);		
-
-	// - In case you couldn't validate every seat the costumer wanted, then free all of them.
-	if(numValidatedSeats < r1.nrIntendedSeats){
-		for(unsigned int a = 0; a < numValidatedSeats; a++){
-			pthread_mutex_lock(&seats_aux_lock);
-				sprintf(message, "\n free seat");
-				write(STDOUT_FILENO, message, 11);
-				freeSeat(seats, validatedIds[a], num_room_seats);
-			pthread_mutex_unlock(&seats_aux_lock);
-		}
-	}	
-			
-	for(unsigned int a = 0; a < numValidatedSeats; a++){
-		sprintf(message, "\n validated seat %d", validatedIds[a]);
-		if(validatedIds[a] >= 10)
-		write(STDOUT_FILENO, message, 20);
-		else
-		write(STDOUT_FILENO, message, 18);
-	}
-	
-	r1.answered = 'y';
-	
-	//<function for sending the request here>	
-
-	pthread_exit(NULL);
-}
-
 int validate_request_parameters(struct Request r1, int num_room_seats){
 	
 	if(r1.nrIntendedSeats > MAX_CLI_SEATS || r1.nrIntendedSeats < 1){
@@ -205,20 +118,20 @@ int validate_request_parameters(struct Request r1, int num_room_seats){
 		return -1;
 	}
 	
-	//checking the amount of ids is equal to the number of intended seats, and if each ID is valid.
+	// - Checking the amount of ids is equal to the number of intended seats, and if each ID is valid.
 
 	int countIDs = 0;
 	
 	for(unsigned int i = 0; i < r1.nrIntendedSeats; i++){	
 		if(r1.idPreferedSeats[i] == 0){
-			//preferedSeats will be all zeros from the point where you no longer have any more seat IDs.		
+			// - PreferedSeats will be all zeros from the point where you no longer have any more seat IDs.		
 			break;
 		} else {
 			countIDs++;
 		}
 
 		if(r1.idPreferedSeats[i] > num_room_seats || r1.idPreferedSeats[i] < 0){
-			//checking identifiers for each seat at the same time
+			// - Checking identifiers for each seat at the same time
 			printf("Invalid seat identifier %d.\n", r1.idPreferedSeats[i]);
 			return -3;
 		}
@@ -247,13 +160,294 @@ int validate_request_parameters(struct Request r1, int num_room_seats){
 		return -6;
 	}
 	
-	//valid request
+	//- Valid request (according to these parameters)
 	return 0;
+}
+
+void write_TO_OPEN(int threadId){
+	int fd;
+	
+	fd = open("slog.txt",O_WRONLY|O_APPEND,0600);
+
+	if (fd == -1) { 
+  		perror("slog.txt"); 
+		return; 
+ 	}
+
+	char message[MAX_MSG_LEN];	
+	
+	if(threadId < 10){
+		sprintf(message, "\n0%d-OPEN", threadId);
+		write(fd, message, 8);
+	}
+
+	else {
+		sprintf(message, "\n%d-OPEN", threadId);
+		write(fd, message, 8);
+	} 
+
+	close(fd);
+}
+
+void write_TO_CLOSED(int threadId){
+	int fd;
+	
+	fd = open("slog.txt",O_WRONLY|O_APPEND,0600);
+
+	if (fd == -1) { 
+  		perror("slog.txt"); 
+		return; 
+ 	}
+
+	char message[MAX_MSG_LEN];	
+	
+	if(threadId < 10){
+		sprintf(message, "\n0%d-CLOSED", threadId);
+		write(fd, message, 10);
+	}
+
+	else {
+		sprintf(message, "\n%d-CLOSED", threadId);
+		write(fd, message, 10);
+	} 
+
+	close(fd);
+}
+
+char* parse_preference_into_string(int preference){
+	char* preferenceString = malloc(20*sizeof(char));	
+	
+	// - Each block will be called a "SECTION"
+
+	if(preference <= 10){
+		sprintf(preferenceString, "000%d ", preference);
+	}
+
+	if(preference >= 10 && preference < 100){
+		sprintf(preferenceString, "00%d ", preference);
+	}
+
+	if(preference >= 100 && preference < 1000){
+		sprintf(preferenceString, "0%d ", preference);
+	}
+
+	return preferenceString;
+}
+
+char* get_ending_note(int identifier){
+
+	char* tag = malloc(10*sizeof(char)); 
+
+	if(identifier < 0){
+		if(identifier == -1) strcat(tag, "MAX");
+		if(identifier == -2) strcat(tag, "NST");
+		if(identifier == -3) strcat(tag, "IID");
+		if(identifier == -4) strcat(tag, "ERR");
+		if(identifier == -5) strcat(tag, "NAV");
+		if(identifier == -6) strcat(tag, "FUL");
+	}
+
+	else {
+		strcat(tag, parse_preference_into_string(identifier));	
+	}
+
+	return tag;
+}
+
+void write_TO_CLIID_NT(struct Request r1, int threadId, int validatedIds[], int numValidatedSeats, int error_flag){
+	int fd;
+	
+	fd = open("slog.txt",O_WRONLY|O_APPEND,0600);
+
+	if (fd == -1) { 
+  		perror("slog.txt"); 
+		return; 
+ 	}
+
+	char message[MAX_CLI_SEATS*8];	
+		
+	// - Formating the "HEADER"
+
+	if(threadId < 10 && r1.nrIntendedSeats < 10){
+		sprintf(message, "\n0%d-%d-0%d: ", threadId, r1.idClient, r1.nrIntendedSeats);
+	}
+
+		
+	if(threadId >= 10 && r1.nrIntendedSeats < 10){
+		sprintf(message, "\n%d-%d-0%d", threadId, r1.idClient, r1.nrIntendedSeats);
+	}
+
+			
+	if(threadId < 10 && r1.nrIntendedSeats >= 10){
+		sprintf(message, "\n0%d-%d-%d", threadId, r1.idClient, r1.nrIntendedSeats);
+	}
+
+		
+	if(threadId >= 10 && r1.nrIntendedSeats >= 10){
+		sprintf(message, "\n%d-%d-%d", threadId, r1.idClient, r1.nrIntendedSeats);
+	}
+
+	// - Adding the bulk of the information "header: section section section ..."
+
+	int count_preference = 0;
+	
+	for(unsigned int i = 0; i < MAX_CLI_SEATS; i++){
+	
+		if(r1.idPreferedSeats[i] != 0) count_preference++;
+		else break;
+
+		strcat(message, parse_preference_into_string(r1.idPreferedSeats[i]));
+	}
+
+	// - Add the final note at the end of the line
+
+	strcat(message, "    - "); // END_NOTE_HEADER
+
+	if(error_flag == 0){
+
+		for(unsigned int i = 0; i < numValidatedSeats; i++){
+			strcat(message, get_ending_note(validatedIds[i]));
+		}
+	
+		int numCharsToWrite = (SIZE_OF_HEADER + (SIZE_OF_SECTION*count_preference)) + (SIZE_OF_END_NOTE_HEADER + (numValidatedSeats*SIZE_OF_SECTION));
+
+		write(fd, message, numCharsToWrite);
+	}
+
+	else{
+		strcat(message, get_ending_note(error_flag));
+	
+		int numCharsToWrite = (SIZE_OF_HEADER + (SIZE_OF_SECTION*count_preference)) + SIZE_OF_END_NOTE_HEADER + SIZE_OF_ERROR_TAG;
+
+		write(fd, message, numCharsToWrite);
+	}
+
+	close(fd);
+}
+
+void *reserveSeat(void *threadId)
+{		
+	int error_flag = 0; //- IN CASE THE REQUEST CANNOT BE ANSWERED, THIS WILL BE SET TO SOMETHING NEGATIVE.
+
+	char message[41];
+	
+	//- Syncing with the start of main
+	pthread_mutex_lock(&threads_lock);
+
+		sprintf(message, "\n in thread lock");
+		write(STDOUT_FILENO, message, 16);	
+
+		while(global_current_Request.idClient == 0){
+			sprintf(message, "\n waiting");
+			write(STDOUT_FILENO, message, 9);		
+			pthread_cond_wait(&threads_cond, &threads_lock);
+		}
+
+		sprintf(message, "\n out thread lock");
+		write(STDOUT_FILENO, message, 17);
+	
+	pthread_mutex_unlock(&threads_lock);
+
+	int intThreadId = *((int *) threadId);
+
+	write_TO_OPEN(intThreadId);
+
+	// - Taking the actual request from the buffer (leaving it empty) and validating
+	
+	struct Request r1 = global_current_Request;
+
+	clear_Request_Buffer();
+
+	error_flag = validate_request_parameters(r1, num_room_seats);
+		
+	int numValidatedSeats = 0;
+	int validatedIds[r1.nrIntendedSeats];
+	int clientID = r1.idClient;
+
+	// - Check if request is valid before needing any operations
+	if(error_flag < 0){
+		write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, error_flag);
+		pthread_exit(NULL);
+	}	
+	
+	sprintf(message, "\n executing reserve");
+	write(STDOUT_FILENO, message, 19);			
+			
+	for(unsigned int a = 0; a < r1.nrIntendedSeats; a++){
+		
+		pthread_mutex_lock(&seats_lock);
+						
+		for(unsigned int i = 0; i < MAX_CLI_SEATS; i++){
+
+			int seatNum = r1.idPreferedSeats[i];
+					
+			if(seatNum == 0){
+				//- Reached the unused portion of the array.
+				break;
+			}
+			
+			sprintf(message, "\n seatNum:%d", seatNum);
+			if(seatNum >= 10)			
+			write(STDOUT_FILENO, message, 13);
+			else
+			write(STDOUT_FILENO, message, 12);	
+			
+			
+			if(isSeatFree(seats, seatNum, num_room_seats)){
+				sprintf(message, "\n booking seat");
+				write(STDOUT_FILENO, message, 14);
+				bookSeat(seats, seatNum, clientID, num_room_seats);
+
+				pthread_mutex_lock(&seats_aux_lock);
+					validatedIds[numValidatedSeats] = seatNum;
+					numValidatedSeats++;
+				pthread_mutex_unlock(&seats_aux_lock);
+
+				break;	
+			}
+		}
+		
+		pthread_mutex_unlock(&seats_lock);
+	}
+		
+	sprintf(message, "\n valid:%d intended:%d", numValidatedSeats, r1.nrIntendedSeats);
+	write(STDOUT_FILENO, message, 20);		
+
+	// - In case you couldn't validate every seat the costumer wanted, then free all of them.
+	if(numValidatedSeats < r1.nrIntendedSeats){
+		for(unsigned int a = 0; a < numValidatedSeats; a++){
+			
+			error_flag = -5; // - At least one of the requests was not valid.
+	
+			pthread_mutex_lock(&seats_aux_lock);
+				sprintf(message, "\n free seat");
+				write(STDOUT_FILENO, message, 11);
+				freeSeat(seats, validatedIds[a], num_room_seats);
+			pthread_mutex_unlock(&seats_aux_lock);
+		}
+	
+		write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, error_flag);
+	
+	}
+
+	//write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, error_flag);	
+			
+	for(unsigned int a = 0; a < numValidatedSeats; a++){
+		sprintf(message, "\n validated seat %d", validatedIds[a]);
+		if(validatedIds[a] >= 10) write(STDOUT_FILENO, message, 20);
+		else write(STDOUT_FILENO, message, 18);
+	}
+	
+	r1.answered = 'y';
+	
+	//<function for sending the request here>
+
+	pthread_exit(NULL);
 }
 
 int main(int argc, char* argv[]){
 
-	int fd, n;
+	int fd, n, file;
 	
 	//1. Checking Input	
 	if(argc < 4){
@@ -262,10 +456,29 @@ int main(int argc, char* argv[]){
 		exit(1);
 	}
 
+	// - Making the logfile.
+	file = open("slog.txt",O_CREAT|O_TRUNC,0600);
+	
+	if (file == -1) { 
+  		perror("slog.txt"); 
+		return 0; 
+ 	}
+	
+	close(file);
+
 	//2. Getting args
 	num_room_seats = atoi(argv[1]);
     	int num_ticket_offices = atoi(argv[2]);
 	int open_time = atoi(argv[3]);
+
+	// - Time constraints due to open_time
+	time_t endwait;
+   	time_t start = time(NULL);
+    	time_t seconds = open_time; // end loop after this time has elapsed
+
+	endwait = start + seconds;
+
+	printf("Tickets opening at: %s", ctime(&start));
 
 	// - Initializing Request Buffer:
 	clear_Request_Buffer();
@@ -308,47 +521,45 @@ int main(int argc, char* argv[]){
 	if ((fd=open("/tmp/requests",O_RDONLY)) !=-1) printf("FIFO '/tmp/requests' openned in READONLY mode\n"); 
 
 	do { 
-		// - Reading from FIFO, first into a "dummy variable" to check if the input is even valid or not
+		// - Reading from FIFO
 		struct Request tempRequest;		
 
 		n=read(fd,&tempRequest,sizeof(struct Request)); 
 		
-		if (n>0) printf("%d client request has arrived\n", tempRequest.idClient);
-		
-		// - Validating
-		if(validate_request_parameters(tempRequest, num_room_seats) != 0){
-			break;
+		if (n>0) printf("\n %d client request has arrived\n", tempRequest.idClient);
+		else {
+			sleep(1);
+        		start = time(NULL);
+			continue;
 		}
 
-		// - Placing the request in the buffer, locking it between critical zone.		 
-		//pthread_mutex_lock(&request_lock);
+		// - Placing the request in the buffer
   		
-			global_current_Request.idClient = tempRequest.idClient;
-			global_current_Request.nrIntendedSeats = tempRequest.nrIntendedSeats;
+		global_current_Request.idClient = tempRequest.idClient;
+		global_current_Request.nrIntendedSeats = tempRequest.nrIntendedSeats;
 
-			for(unsigned int i = 0; i < MAX_CLI_SEATS; i++){
-				global_current_Request.idPreferedSeats[i] = tempRequest.idPreferedSeats[i];
-			}
+		for(unsigned int i = 0; i < MAX_CLI_SEATS; i++){
+			global_current_Request.idPreferedSeats[i] = tempRequest.idPreferedSeats[i];
+		}
 
-			global_current_Request.answered = tempRequest.answered;
+		global_current_Request.answered = tempRequest.answered;
 
-			//syncing with threads, letting them execute
-			pthread_mutex_lock(&threads_lock);		
-				pthread_cond_signal(&threads_cond);
-			pthread_mutex_unlock(&threads_lock);
+		// - Syncing with threads, letting them execute
+		pthread_mutex_lock(&threads_lock);		
+			pthread_cond_signal(&threads_cond);
+		pthread_mutex_unlock(&threads_lock);
 	
-			// - Wait until the request has been removed by one of the threads.
-			while(global_current_Request.nrIntendedSeats != 0){		
-				//pthread_cond_wait(&request_cond, &request_lock);
-				sleep(1);
-			}
-	
-			//placing the request buffer back to all zeroes once he leaves the wait (request taken by threads)
-			clear_Request_Buffer();
-	
-		//pthread_mutex_unlock(&request_lock);
+		// - Wait until the request has been removed by one of the threads.
+		while(global_current_Request.nrIntendedSeats != 0){
+			sleep(1);
+		}
 
-	} while (global_current_Request.idClient != -1); 
+		sleep(1);
+        	start = time(NULL);
+
+	} while (start < endwait); 
+
+	printf("\n Tickets closed at %s", ctime(&endwait));
   	
 	for(int k=0; k <= num_ticket_offices; k++) {
 		pthread_join(tid[k], NULL); //wait for threads to be done

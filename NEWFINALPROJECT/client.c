@@ -101,25 +101,17 @@ int main(int argc, char* argv[]){
 
 	struct Request nextValid;
 
-	nextValid.idClient = 400;
+	nextValid.idClient = 4000;
 	nextValid.nrIntendedSeats = 4;
-	nextValid.idPreferedSeats[0] = 1;
-	nextValid.idPreferedSeats[1] = 2;
+	nextValid.idPreferedSeats[0] = 100;
+	nextValid.idPreferedSeats[1] = 20;
 	nextValid.idPreferedSeats[2] = 3;
-	nextValid.idPreferedSeats[3] = 4;
+	nextValid.idPreferedSeats[3] = 8;
 	nextValid.answered = 'n';
 
 	n=write(fd,&nextValid,sizeof(struct Request)); 
 
-	if (n>0) printf("%d request has been sent.\n", nextValid.idClient); 
-
-	printf("Now sending request -1, server should shutdown and destroy the request FIFO.\n");
-
-	struct Request end;
-
-	end.idClient = -1;
-
-	n=write(fd,&end,sizeof(struct Request)); 
+	if (n>0) printf("%d request has been sent.\n", nextValid.idClient);
 
 	//-- WAIT FOR RESPONSE HERE --
   	
