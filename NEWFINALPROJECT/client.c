@@ -105,7 +105,7 @@ int main(int argc, char* argv[]){
 	nextValid.nrIntendedSeats = 4;
 	nextValid.idPreferedSeats[0] = 100;
 	nextValid.idPreferedSeats[1] = 20;
-	nextValid.idPreferedSeats[2] = 3;
+	nextValid.idPreferedSeats[2] = 10;
 	nextValid.idPreferedSeats[3] = 8;
 	nextValid.answered = 'n';
 

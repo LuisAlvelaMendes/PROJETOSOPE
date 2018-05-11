@@ -31,6 +31,7 @@ pthread_mutex_t seats_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t request_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t threads_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t end_ticketer_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t end_ticketer_cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t delay_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t threads_cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t seats_aux_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -330,12 +331,16 @@ void *reserveSeat(void *threadId)
 	int error_flag = 0; //- IN CASE THE REQUEST CANNOT BE ANSWERED, THIS WILL BE SET TO SOMETHING NEGATIVE.
 
 	char message[41];
+
+	int intThreadId = *((int *) threadId);
 	
 	//- Syncing with the start of main
 	pthread_mutex_lock(&threads_lock);
 
 		sprintf(message, "\n in thread lock");
-		write(STDOUT_FILENO, message, 16);	
+		write(STDOUT_FILENO, message, 16);
+
+		write_TO_OPEN(intThreadId);	
 
 		while(global_current_Request.idClient == 0){
 			sprintf(message, "\n waiting");
@@ -347,10 +352,6 @@ void *reserveSeat(void *threadId)
 		write(STDOUT_FILENO, message, 17);
 	
 	pthread_mutex_unlock(&threads_lock);
-
-	int intThreadId = *((int *) threadId);
-
-	write_TO_OPEN(intThreadId);
 
 	// - Taking the actual request from the buffer (leaving it empty) and validating
 	
@@ -427,10 +428,9 @@ void *reserveSeat(void *threadId)
 		}
 	
 		write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, error_flag);
-	
 	}
 
-	//write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, error_flag);	
+	write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, error_flag);	
 			
 	for(unsigned int a = 0; a < numValidatedSeats; a++){
 		sprintf(message, "\n validated seat %d", validatedIds[a]);
@@ -456,7 +456,7 @@ int main(int argc, char* argv[]){
 		exit(1);
 	}
 
-	// - Making the logfile.
+	// - Making the logfile or cleaning it.
 	file = open("slog.txt",O_CREAT|O_TRUNC,0600);
 	
 	if (file == -1) { 
@@ -465,6 +465,10 @@ int main(int argc, char* argv[]){
  	}
 	
 	close(file);
+
+	// - Initializing semaphore used for threads.
+	sem_init(&empty, SHARED, 1);
+	sem_init(&full, SHARED, 0); 
 
 	//2. Getting args
 	num_room_seats = atoi(argv[1]);
@@ -528,6 +532,7 @@ int main(int argc, char* argv[]){
 		
 		if (n>0) printf("\n %d client request has arrived\n", tempRequest.idClient);
 		else {
+			// - Even if no requests are taken, time will pass ..
 			sleep(1);
         		start = time(NULL);
 			continue;
@@ -554,15 +559,21 @@ int main(int argc, char* argv[]){
 			sleep(1);
 		}
 
-		sleep(1);
+		sleep(1); // - Sleep placed due to passage of time
         	start = time(NULL);
 
-	} while (start < endwait); 
+	} while (start < endwait);
 
 	printf("\n Tickets closed at %s", ctime(&endwait));
   	
-	for(int k=0; k <= num_ticket_offices; k++) {
-		pthread_join(tid[k], NULL); //wait for threads to be done
+	for(int k=0; k < num_ticket_offices; k++) {
+		pthread_mutex_lock(&end_ticketer_lock);
+
+			write_TO_CLOSED(thrArg[k]);
+			
+			pthread_join(tid[k], NULL); //wait for threads to be done
+		
+		pthread_mutex_unlock(&end_ticketer_lock);
 	}	
 
 	close(fd);
