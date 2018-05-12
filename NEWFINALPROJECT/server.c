@@ -55,6 +55,8 @@ int num_room_seats = 0;
 
 int close_thread = 0; //tells threads when to close
 
+int MAX_OVERFLOW_CHARACTERS = 0; //auxiliary variable for writing the file when - MAX is triggered
+
 int isSeatFree(struct Seat *seats, int seatNum, size_t seatsSize){	
 
 	for(unsigned int i = 0; i < seatsSize; i++){
@@ -108,10 +110,25 @@ void clear_Request_Buffer(){
 	global_current_Request.answered = 'n';
 }
 
+int countDigits(int num){
+	long long n;
+	int count = 0;
+
+	n = (long long) num;	
+	
+	while(n != 0){
+		n /= 10;
+		++count;
+    	}
+	
+	return count;
+}
+
 int validate_request_parameters(struct Request r1, int num_room_seats){
 	
 	if(r1.nrIntendedSeats > MAX_CLI_SEATS || r1.nrIntendedSeats < 1){
 		printf("Invalid number of intended seats.\n");
+		MAX_OVERFLOW_CHARACTERS = countDigits(r1.nrIntendedSeats) - 2;
 		return -1;
 	}
 	
@@ -271,17 +288,17 @@ void write_TO_CLIID_NT(struct Request r1, int threadId, int validatedIds[], int 
 
 		
 	if(threadId >= 10 && r1.nrIntendedSeats < 10){
-		sprintf(message, "\n%d-%d-0%d", threadId, r1.idClient, r1.nrIntendedSeats);
+		sprintf(message, "\n%d-%d-0%d: ", threadId, r1.idClient, r1.nrIntendedSeats);
 	}
 
 			
 	if(threadId < 10 && r1.nrIntendedSeats >= 10){
-		sprintf(message, "\n0%d-%d-%d", threadId, r1.idClient, r1.nrIntendedSeats);
+		sprintf(message, "\n0%d-%d-%d: ", threadId, r1.idClient, r1.nrIntendedSeats);
 	}
 
 		
 	if(threadId >= 10 && r1.nrIntendedSeats >= 10){
-		sprintf(message, "\n%d-%d-%d", threadId, r1.idClient, r1.nrIntendedSeats);
+		sprintf(message, "\n%d-%d-%d: ", threadId, r1.idClient, r1.nrIntendedSeats);
 	}
 
 	// - Adding the bulk of the information "header: <section section section ...>"
@@ -312,11 +329,21 @@ void write_TO_CLIID_NT(struct Request r1, int threadId, int validatedIds[], int 
 	}
 
 	else{
-		strcat(message, get_ending_note(error_flag));
+		if(error_flag != -1){
+			strcat(message, get_ending_note(error_flag));
 	
-		int numCharsToWrite = (SIZE_OF_HEADER + (SIZE_OF_SECTION*count_preference)) + SIZE_OF_END_NOTE_HEADER + SIZE_OF_ERROR_TAG + 1;
+			int numCharsToWrite = SIZE_OF_HEADER + (SIZE_OF_SECTION*count_preference) + SIZE_OF_END_NOTE_HEADER + SIZE_OF_ERROR_TAG + 1;
 
-		write(fd, message, numCharsToWrite);
+			write(fd, message, numCharsToWrite);
+		}
+
+		else {
+			strcat(message, get_ending_note(error_flag));
+	
+			int numCharsToWrite = SIZE_OF_HEADER + (SIZE_OF_SECTION*count_preference) + SIZE_OF_END_NOTE_HEADER + SIZE_OF_ERROR_TAG + MAX_OVERFLOW_CHARACTERS + 1;
+
+			write(fd, message, numCharsToWrite);
+		}	
 	}
 
 	close(fd);
@@ -441,9 +468,11 @@ void *reserveSeat(void *threadId)
 			pthread_mutex_unlock(&writing_lock);error_flag = -5; // - At least one of the requests was not valid.
 		}
 
-		pthread_mutex_lock(&writing_lock);
-			write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, error_flag);
-		pthread_mutex_unlock(&writing_lock);	
+		if(error_flag == 0){
+			pthread_mutex_lock(&writing_lock);
+				write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, error_flag);
+			pthread_mutex_unlock(&writing_lock);
+		}	
 				
 		for(unsigned int a = 0; a < numValidatedSeats; a++){
 			sprintf(message, "\n validated seat %d", validatedIds[a]);

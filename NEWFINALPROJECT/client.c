@@ -101,7 +101,7 @@ int main(int argc, char* argv[]){
 
 	struct Request nextValid;
 
-	nextValid.idClient = 4000;
+	nextValid.idClient = 40000;
 	nextValid.nrIntendedSeats = 4;
 	nextValid.idPreferedSeats[0] = 100;
 	nextValid.idPreferedSeats[1] = 20;
