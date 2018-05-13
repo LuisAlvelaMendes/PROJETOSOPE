@@ -14,9 +14,26 @@ int countDigits(int num){
 	return count;
 }
 
+char* get_ending_note(int identifier){
+
+	char* tag = malloc(10*sizeof(char)); 
+
+	if(identifier < 0){
+		if(identifier == -1) strcat(tag, "MAX");
+		if(identifier == -2) strcat(tag, "NST");
+		if(identifier == -3) strcat(tag, "IID");
+		if(identifier == -4) strcat(tag, "ERR");
+		if(identifier == -5) strcat(tag, "NAV");
+		if(identifier == -6) strcat(tag, "FUL");
+	}
+
+	return tag;
+}
+
 int main(int argc, char* argv[]){
 
 	int fd, n, answer;
+	time_t start = time(NULL);
 	struct Request request_1;
 	
 	//1. Checking Input
@@ -134,8 +151,34 @@ int main(int argc, char* argv[]){
   	
 	close(fd); 
 
+	//Reading Answer from FIFO
 	if ((answer=open(fifoname,O_RDONLY)) !=-1) printf("FIFO %s openned in READONLY mode\n", fifoname);
-	sleep(15);
+
+	do { 
+		// - Reading from FIFO
+
+		struct Answer tempAnswer;		
+
+		n=read(answer,&tempAnswer,sizeof(struct Answer)); 
+		
+		if (n>0){
+			if (tempAnswer.error_flag < 0) printf("\n %d Answer has arrived: %s\n", tempAnswer.error_flag, get_ending_note(tempAnswer.error_flag));
+			else{
+				printf("\nAnswer has arrived: ");
+				for(unsigned int a = 0; a < MAX_CLI_SEATS + 1; a++){
+					if (tempAnswer.reservedSeats[a] == 0){
+						printf("\n");
+						return;
+					}
+					else printf("%d ", tempAnswer.reservedSeats[a]);
+				 }
+			}
+		}
+
+        	start = time(NULL);
+
+	} while (start < time_out);
+
 	close(answer);
 
 	return 0;
