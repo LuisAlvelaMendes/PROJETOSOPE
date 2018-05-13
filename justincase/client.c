@@ -1,22 +1,8 @@
 #include "client.h"
 
-int countDigits(int num){
-	long long n;
-	int count = 0;
-
-	n = (long long) num;	
-	
-	while(n != 0){
-		n /= 10;
-		++count;
-    	}
-	
-	return count;
-}
-
 int main(int argc, char* argv[]){
 
-	int fd, n, answer;
+	int fd, n;
 	struct Request request_1;
 	
 	//1. Checking Input
@@ -55,34 +41,11 @@ int main(int argc, char* argv[]){
 
 	// - Getting the FIFO's name 
 	
-	int pid = getpid();
-
-	int digits = countDigits(pid);
-
-	if(digits < WIDTH_PID){
-		if(digits == 4){
-			pid = pid*10;
-		}
-
-		if(digits == 3){
-			pid = pid*100;
-		}
-
-		if(digits == 2){
-			pid = pid*1000;
-		}
-
-		if(digits == 1){
-			pid = pid*10000;
-		}
-	}
-	
-	sprintf(fifoname, "/tmp/ans%d", pid);
+	sprintf(fifoname, "/tmp/ans%d", getpid());
 
 	// - Initializing Request
 
-	request_1.idClient = pid;
-	
+	request_1.idClient = getpid();
 	request_1.nrIntendedSeats = num_wanted_seats;
 	
 	// - Initializing the request array at all zeros just in case
@@ -133,10 +96,6 @@ int main(int argc, char* argv[]){
 	//-- WAIT FOR RESPONSE HERE --
   	
 	close(fd); 
-
-	if ((answer=open(fifoname,O_RDONLY)) !=-1) printf("FIFO %s openned in READONLY mode\n", fifoname);
-	sleep(15);
-	close(answer);
 
 	return 0;
 }
