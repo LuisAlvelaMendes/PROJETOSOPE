@@ -1,12 +1,5 @@
 #include "server.h"
 
-struct Answer
-{
-	int error_flag;
-	int reservedSeats[MAX_CLI_SEATS + 1];
-};
-
-
 struct Request global_current_Request; //the request that will be handled one at a time by the program, the main function receives a request from the FIFO, puts it here if the previous one was answered, and then the threads will take it on and try to reserve a seat.
 
 struct Seat *seats;
@@ -458,13 +451,13 @@ void *reserveSeat(void *threadId)
 					write(STDOUT_FILENO, message, 11);
 					freeSeat(seats, validatedIds[a], num_room_seats);
 				pthread_mutex_unlock(&seats_aux_lock);
-			}
-		
+			}	
+				
 			answer.error_flag = -5; // - At least one of the requests was not valid.
 			
 			pthread_mutex_lock(&writing_lock);
 				write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, answer.error_flag);
-			pthread_mutex_unlock(&writing_lock);answer.error_flag = -5; // - At least one of the requests was not valid.
+			pthread_mutex_unlock(&writing_lock);
 		}
 		else{ //writing the reserved seats to sbook and updating answer
 			answer.reservedSeats[0] = numValidatedSeats;
