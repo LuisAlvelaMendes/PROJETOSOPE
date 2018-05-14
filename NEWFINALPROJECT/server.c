@@ -438,7 +438,7 @@ void *reserveSeat(void *threadId)
 			pthread_mutex_unlock(&seats_lock);
 		}
 			
-		sprintf(message, "\n valid:%d intended:%d", numValidatedSeats, r1.nrIntendedSeats);
+		sprintf(message, "\n valid:%d intended:%d\n", numValidatedSeats, r1.nrIntendedSeats);
 		write(STDOUT_FILENO, message, 20);		
 
 		// - In case you couldn't validate every seat the costumer wanted, then free all of them.
@@ -453,6 +453,10 @@ void *reserveSeat(void *threadId)
 			}	
 				
 			answer.error_flag = -5; // - At least one of the requests was not valid.
+
+			//write answer to fifo
+			n=write(fd,&answer.error_flag,sizeof(int)); 
+			if (n>0) printf("%d answer was sent to the client.\n", answer.error_flag);
 			
 			pthread_mutex_lock(&writing_lock);
 				write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, answer.error_flag);
@@ -472,7 +476,7 @@ void *reserveSeat(void *threadId)
 			pthread_mutex_unlock(&writing_lock);
 
 			//write answer to fifo
-			n=write(fd,answer.reservedSeats,(MAX_CLI_SEATS + 1)*sizeof(int)); 
+			n=write(fd,&answer,sizeof(struct Answer)); 
 			if (n>0){
 				 printf("Answer was sent to the client: "); 
 				 for(unsigned int a = 0; a < numValidatedSeats + 1; a++){
