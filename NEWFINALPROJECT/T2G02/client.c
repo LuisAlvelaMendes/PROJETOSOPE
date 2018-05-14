@@ -104,7 +104,7 @@ int main(int argc, char* argv[]){
 
 	// - Making the logfile or cleaning it.
 
-	clog_file = open("clog.txt",O_CREAT,0600);
+	clog_file = open("clog.txt",O_CREAT|O_TRUNC,0600);
 	
 	if (clog_file == -1) { 
   		perror("clog.txt"); 
@@ -115,7 +115,7 @@ int main(int argc, char* argv[]){
 
 	// - Creating the client bookings file
 	
-	cbook_file = open("cbook.txt",O_CREAT,0600);
+	cbook_file = open("cbook.txt",O_CREAT|O_TRUNC,0600);
 	
 	if (cbook_file < 0) { 
   		perror("cbook.txt");
@@ -216,6 +216,8 @@ int main(int argc, char* argv[]){
 	if (n>0) printf("%d request has been sent.\n", request_1.idClient); 
 
 	//-- WAIT FOR RESPONSE HERE --
+
+	sleep(15);
   	
 	close(fd); 
 
@@ -249,6 +251,7 @@ int main(int argc, char* argv[]){
 			}
 		}
 
+		sleep(1);
         	start = time(NULL);
 
 	} while (start < time_out);

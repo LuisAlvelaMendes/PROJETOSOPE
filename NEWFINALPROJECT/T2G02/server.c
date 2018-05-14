@@ -231,7 +231,7 @@ char* parse_preference_into_string(int preference){
 	
 	// - Each block will be called a "SECTION"
 
-	if(preference <= 10){
+	if(preference < 10){
 		sprintf(preferenceString, "000%d ", preference);
 	}
 
