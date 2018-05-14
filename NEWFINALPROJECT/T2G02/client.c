@@ -104,7 +104,7 @@ int main(int argc, char* argv[]){
 
 	// - Making the logfile or cleaning it.
 
-	clog_file = open("clog.txt",O_CREAT|O_TRUNC,0600);
+	clog_file = open("clog.txt",O_CREAT,0600);
 	
 	if (clog_file == -1) { 
   		perror("clog.txt"); 
@@ -115,7 +115,7 @@ int main(int argc, char* argv[]){
 
 	// - Creating the client bookings file
 	
-	cbook_file = open("cbook.txt",O_CREAT|O_TRUNC,0600);
+	cbook_file = open("cbook.txt",O_CREAT,0600);
 	
 	if (cbook_file < 0) { 
   		perror("cbook.txt");
@@ -145,6 +145,7 @@ int main(int argc, char* argv[]){
 	}
 
 	// - Making sure from the point where we no longer have IDs it'll be all zeros, that portion of the array is unused.
+
 	for(unsigned int i = countingIDs; i < MAX_CLI_SEATS; i++){
 		pref_seat_list[i] = 0;
 	}
@@ -184,11 +185,13 @@ int main(int argc, char* argv[]){
 	request_1.nrIntendedSeats = num_wanted_seats;
 	
 	// - Initializing the request array at all zeros just in case
+
 	for(unsigned int i = 0; i < MAX_CLI_SEATS; i++){
 		request_1.idPreferedSeats[i] = zeros[i];
 	}
 	
 	// - Passing over the intended elements
+
 	for(unsigned int i = 0; i < MAX_CLI_SEATS; i++){
 		request_1.idPreferedSeats[i] = pref_seat_list[i];
 	}
@@ -212,27 +215,11 @@ int main(int argc, char* argv[]){
 
 	if (n>0) printf("%d request has been sent.\n", request_1.idClient); 
 
-	sleep(15);
-
-	struct Request nextValid;
-
-	nextValid.idClient = 40000;
-	nextValid.nrIntendedSeats = 4;
-	nextValid.idPreferedSeats[0] = 100;
-	nextValid.idPreferedSeats[1] = 20;
-	nextValid.idPreferedSeats[2] = 10;
-	nextValid.idPreferedSeats[3] = 8;
-	nextValid.answered = 'n';
-
-	n=write(fd,&nextValid,sizeof(struct Request)); 
-
-	if (n>0) printf("%d request has been sent.\n", nextValid.idClient);
-
 	//-- WAIT FOR RESPONSE HERE --
   	
 	close(fd); 
 
-	//Reading Answer from FIFO
+	// - Reading Answer from FIFO
 	if ((answer=open(fifoname,O_RDONLY)) !=-1) printf("FIFO %s openned in READONLY mode\n", fifoname);
 
 	do { 
@@ -243,18 +230,22 @@ int main(int argc, char* argv[]){
 		n=read(answer,&tempAnswer,sizeof(struct Answer)); 
 		
 		if (n>0){
+			
 			if (tempAnswer.error_flag < 0){
 				write_to_clog_error(request_1.idClient, get_ending_note(tempAnswer.error_flag));
 				printf("\n %d Answer has arrived: %s\n", tempAnswer.error_flag, get_ending_note(tempAnswer.error_flag));
 			}
+	
 			else{
 				write_to_clog_success(request_1.idClient, tempAnswer.reservedSeats[0], tempAnswer.reservedSeats);
 				write_to_cbook(tempAnswer.reservedSeats);
 				printf("\nAnswer has arrived: ");
+				
 				for(unsigned int a = 0; a < tempAnswer.reservedSeats[0] + 1; a++){
 					printf("%d ", tempAnswer.reservedSeats[a]);
-				 }
-				 printf("\n");
+				}
+				 
+				printf("\n");
 			}
 		}
 

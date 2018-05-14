@@ -4,6 +4,8 @@ struct Request global_current_Request; //the request that will be handled one at
 
 struct Seat *seats;
 
+struct Answer answer;
+
 int num_room_seats = 0;
 
 int close_thread = 0; //tells threads when to close
@@ -61,6 +63,11 @@ void clear_Request_Buffer(){
 	global_current_Request.nrIntendedSeats = 0;
 	memset(global_current_Request.idPreferedSeats, 0, MAX_CLI_SEATS);
 	global_current_Request.answered = 'n';
+}
+
+void initialize_Answer(){
+	answer.error_flag = 0;
+	memset(answer.reservedSeats, 0, MAX_CLI_SEATS + 1);
 }
 
 int countDigits(int num){
@@ -180,6 +187,25 @@ void write_TO_CLOSED(int threadId){
 
 	close(fd);
 }
+
+void write_to_sbook(int seatID){
+
+	int file;
+	
+	file = open("sbook.txt",O_WRONLY|O_APPEND,0600);
+
+	if (file < 0) { 
+  		perror("sbook.txt"); 
+		return; 
+ 	}
+
+	char message[MAX_MSG_LEN];
+	sprintf(message, "%04d\n", seatID);
+	write(file, message, 5);
+
+	close(file);
+}
+
 
 char* parse_preference_into_string(int preference){
 	char* preferenceString = malloc(20*sizeof(char));	
@@ -304,7 +330,8 @@ void write_TO_CLIID_NT(struct Request r1, int threadId, int validatedIds[], int 
 
 void *reserveSeat(void *threadId)
 {		
-	int error_flag = 0; // - IN CASE THE REQUEST CANNOT BE ANSWERED, THIS WILL BE SET TO SOMETHING NEGATIVE.
+	int fd, n;
+	initialize_Answer();
 
 	char message[41];
 
@@ -316,7 +343,6 @@ void *reserveSeat(void *threadId)
 
 		sprintf(message, "\n in thread lock");
 		write(STDOUT_FILENO, message, 16);
-
 		write_TO_OPEN(intThreadId);	
 
 		while(global_current_Request.idClient == 0 && close_thread == 0){
@@ -341,9 +367,16 @@ void *reserveSeat(void *threadId)
 
 	struct Request r1 = global_current_Request;
 
+	char fifoname[20];
+
+	// - Getting the FIFO's name	
+	sprintf(fifoname, "/tmp/ans%d", r1.idClient);
+
+	if ((fd=open(fifoname,O_WRONLY)) !=-1) printf("FIFO %s openned in WRITEONLY mode\n", fifoname);
+
 	clear_Request_Buffer();
 
-	error_flag = validate_request_parameters(r1, num_room_seats);
+	answer.error_flag = validate_request_parameters(r1, num_room_seats);
 		
 	int numValidatedSeats = 0;
 	int validatedIds[r1.nrIntendedSeats];
@@ -351,10 +384,14 @@ void *reserveSeat(void *threadId)
 
 	// - Check if request is valid before needing any operations
 
-	if(error_flag < 0){
+	if(answer.error_flag < 0){
 		pthread_mutex_lock(&writing_lock);
-			write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, error_flag);
+			write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, answer.error_flag);
 		pthread_mutex_unlock(&writing_lock);
+
+		//write answer to fifo
+		n=write(fd,&answer.error_flag,sizeof(int)); 
+		if (n>0) printf("%d answer was sent to the client.\n", answer.error_flag); 
 	}	
 	
 	sprintf(message, "\n executing reserve");
@@ -362,7 +399,7 @@ void *reserveSeat(void *threadId)
 	
 	// - Actually starting reserving seats		
 			
-	if(error_flag == 0){
+	if(answer.error_flag == 0){
 		for(unsigned int a = 0; a < r1.nrIntendedSeats; a++){
 			
 			pthread_mutex_lock(&seats_lock);
@@ -400,7 +437,7 @@ void *reserveSeat(void *threadId)
 			pthread_mutex_unlock(&seats_lock);
 		}
 			
-		sprintf(message, "\n valid:%d intended:%d", numValidatedSeats, r1.nrIntendedSeats);
+		sprintf(message, "\n valid:%d intended:%d\n", numValidatedSeats, r1.nrIntendedSeats);
 		write(STDOUT_FILENO, message, 20);		
 
 		// - In case you couldn't validate every seat the costumer wanted, then free all of them.
@@ -412,19 +449,40 @@ void *reserveSeat(void *threadId)
 					write(STDOUT_FILENO, message, 11);
 					freeSeat(seats, validatedIds[a], num_room_seats);
 				pthread_mutex_unlock(&seats_aux_lock);
-			}
-		
-			error_flag = -5; // - At least one of the requests was not valid.
+			}	
+				
+			answer.error_flag = -5; // - At least one of the requests was not valid.
+
+			//write answer to fifo
+			n=write(fd,&answer.error_flag,sizeof(int)); 
+			if (n>0) printf("%d answer was sent to the client.\n", answer.error_flag);
 			
 			pthread_mutex_lock(&writing_lock);
-				write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, error_flag);
-			pthread_mutex_unlock(&writing_lock);error_flag = -5; // - At least one of the requests was not valid.
+				write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, answer.error_flag);
+			pthread_mutex_unlock(&writing_lock);
+		}
+		else{ //writing the reserved seats to sbook and updating answer
+			answer.reservedSeats[0] = numValidatedSeats;
+			for(unsigned int a = 0; a < numValidatedSeats; a++){
+				write_to_sbook(validatedIds[a]);
+				answer.reservedSeats[a+1] = validatedIds[a];
+			}
 		}
 
-		if(error_flag == 0){
+		if(answer.error_flag == 0){
 			pthread_mutex_lock(&writing_lock);
-				write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, error_flag);
+				write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, answer.error_flag);
 			pthread_mutex_unlock(&writing_lock);
+
+			//write answer to fifo
+			n=write(fd,&answer,sizeof(struct Answer)); 
+			if (n>0){
+				 printf("Answer was sent to the client: "); 
+				 for(unsigned int a = 0; a < numValidatedSeats + 1; a++){
+					printf("%d ", answer.reservedSeats[a]);
+				 }
+				 printf("\n");
+			}
 		}	
 				
 		for(unsigned int a = 0; a < numValidatedSeats; a++){
@@ -433,6 +491,8 @@ void *reserveSeat(void *threadId)
 			else write(STDOUT_FILENO, message, 18);
 		}
 	}	
+	
+	close(fd);
 
 	r1.answered = 'y';
 	
@@ -454,7 +514,7 @@ void *reserveSeat(void *threadId)
 int main(int argc, char* argv[]){
 
 
-	int fd, n, file;
+	int fd, n, file, sbook;
 	
 	//1. Checking Input
 	
@@ -474,6 +534,17 @@ int main(int argc, char* argv[]){
  	}
 	
 	close(file);
+
+	// - Creating the server bookings file
+	
+	sbook = open("sbook.txt",O_CREAT|O_TRUNC,0600);
+	
+	if (sbook < 0) { 
+  		perror("sbook.txt");
+		return 0; 
+ 	}
+	
+	close(sbook);
 
 	//2. Getting args
 

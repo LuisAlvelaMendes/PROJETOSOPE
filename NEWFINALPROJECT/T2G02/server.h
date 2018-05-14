@@ -46,3 +46,9 @@ struct Request
 	int idPreferedSeats[MAX_CLI_SEATS];
 	char answered; //tells you whether it has been answered or not 'y' means answered and 'n' means unanswered.
 };
+
+struct Answer 
+{ 
+  int error_flag; 
+  int reservedSeats[MAX_CLI_SEATS + 1]; 
+};

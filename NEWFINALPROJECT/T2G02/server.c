@@ -12,7 +12,18 @@ int close_thread = 0; //tells threads when to close
 
 int MAX_OVERFLOW_CHARACTERS = 0; //auxiliary variable for writing the file when - MAX is triggered
 
+void checkResult(char *string, int err) { 
+
+	if(err != 0)  { 
+    		printf("Error %d on %s\n", err, string); 
+    		exit(EXIT_FAILURE); 
+  	} 
+	
+	return; 
+} 
+
 int isSeatFree(struct Seat *seats, int seatNum, size_t seatsSize){	
+	int res;
 
 	for(unsigned int i = 0; i < seatsSize; i++){
 		if(seats[i].seatId == seatNum && seats[i].occupied == 'n'){
@@ -20,15 +31,18 @@ int isSeatFree(struct Seat *seats, int seatNum, size_t seatsSize){
 		}
 	}
 
-	pthread_mutex_lock(&delay_lock);
+	res = pthread_mutex_lock(&delay_lock);
+	checkResult("pthread_mutex_lock()\n", res);
 		DELAY();
-	pthread_mutex_unlock(&delay_lock);
+	res = pthread_mutex_unlock(&delay_lock);
+	checkResult("pthread_mutex_lock()\n", res);
 
 	return 0;
 }
 
 void bookSeat(struct Seat *seats, int seatNum, int clientId, size_t seatsSize){
-	
+	int res;	
+
 	for(unsigned int i = 0; i < seatsSize; i++){
 		if(seats[i].seatId == seatNum){
 			seats[i].clientId = clientId;
@@ -37,13 +51,16 @@ void bookSeat(struct Seat *seats, int seatNum, int clientId, size_t seatsSize){
 		}
 	}
 
-	pthread_mutex_lock(&delay_lock);
+	res = pthread_mutex_lock(&delay_lock);
+	checkResult("pthread_mutex_lock()\n", res);
 		DELAY();
-	pthread_mutex_unlock(&delay_lock);
+	res = pthread_mutex_unlock(&delay_lock);
+	checkResult("pthread_mutex_lock()\n", res);
 }
 
 void freeSeat(struct Seat *seats, int seatNum, size_t seatsSize){
  //while answering the request, goes through the prefered seat IDs array every time and if it can't book any of them at one point, frees everything, the request is invalid.
+	int res;
 
 	for(unsigned int i = 0; i < seatsSize; i++){
 		if(seats[i].seatId == seatNum){
@@ -53,9 +70,11 @@ void freeSeat(struct Seat *seats, int seatNum, size_t seatsSize){
 		}
 	}
 
-	pthread_mutex_lock(&delay_lock);
+	res = pthread_mutex_lock(&delay_lock);
+	checkResult("pthread_mutex_lock()\n", res);
 		DELAY();
-	pthread_mutex_unlock(&delay_lock);
+	res = pthread_mutex_unlock(&delay_lock);
+	checkResult("pthread_mutex_lock()\n", res);
 }
 
 void clear_Request_Buffer(){
@@ -220,8 +239,12 @@ char* parse_preference_into_string(int preference){
 		sprintf(preferenceString, "00%d ", preference);
 	}
 
-	if(preference >= 100 && preference < 1000){
+	if(preference >= 100 && preference <= 999){
 		sprintf(preferenceString, "0%d ", preference);
+	}
+
+	if(preference > 999 && preference <= MAX_ROOM_SEATS){
+		sprintf(preferenceString, "%d ", preference);
 	}
 
 	return preferenceString;
@@ -330,9 +353,9 @@ void write_TO_CLIID_NT(struct Request r1, int threadId, int validatedIds[], int 
 
 void *reserveSeat(void *threadId)
 {		
-	//int error_flag = 0; // - IN CASE THE REQUEST CANNOT BE ANSWERED, THIS WILL BE SET TO SOMETHING NEGATIVE.
 	int fd, n;
 	initialize_Answer();
+	int res;
 
 	char message[41];
 
@@ -340,22 +363,18 @@ void *reserveSeat(void *threadId)
 
 	// - Syncing with the start of main
 
-	pthread_mutex_lock(&threads_lock);
+	res = pthread_mutex_lock(&threads_lock);
+	checkResult("pthread_mutex_lock()\n", res);
 
-		sprintf(message, "\n in thread lock");
-		write(STDOUT_FILENO, message, 16);
-		write_TO_OPEN(intThreadId);	
+		write_TO_OPEN(intThreadId);   	
 
 		while(global_current_Request.idClient == 0 && close_thread == 0){
-			sprintf(message, "\n waiting");
-			write(STDOUT_FILENO, message, 9);
-			pthread_cond_wait(&threads_cond, &threads_lock);
+			res = pthread_cond_wait(&threads_cond, &threads_lock);
+			checkResult("pthread_cond_wait()\n", res);
 		}
-
-		sprintf(message, "\n out thread lock");
-		write(STDOUT_FILENO, message, 17);
 	
-	pthread_mutex_unlock(&threads_lock);
+	res = pthread_mutex_unlock(&threads_lock);
+	checkResult("pthread_mutex_lock()\n", res);
 	
 	// - In case it's time to close the thread, do so now
 
@@ -386,16 +405,18 @@ void *reserveSeat(void *threadId)
 	// - Check if request is valid before needing any operations
 
 	if(answer.error_flag < 0){
-		pthread_mutex_lock(&writing_lock);
+		res = pthread_mutex_lock(&writing_lock);
+		checkResult("pthread_mutex_lock()\n", res);
 			write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, answer.error_flag);
-		pthread_mutex_unlock(&writing_lock);
+		res = pthread_mutex_unlock(&writing_lock);
+		checkResult("pthread_mutex_lock()\n", res);
 
-		//write answer to fifo
+		// - Writing answer to FIFO
 		n=write(fd,&answer.error_flag,sizeof(int)); 
 		if (n>0) printf("%d answer was sent to the client.\n", answer.error_flag); 
 	}	
 	
-	sprintf(message, "\n executing reserve");
+	sprintf(message, "\n executing reservation");
 	write(STDOUT_FILENO, message, 19);	
 	
 	// - Actually starting reserving seats		
@@ -403,7 +424,8 @@ void *reserveSeat(void *threadId)
 	if(answer.error_flag == 0){
 		for(unsigned int a = 0; a < r1.nrIntendedSeats; a++){
 			
-			pthread_mutex_lock(&seats_lock);
+			res = pthread_mutex_lock(&seats_lock);
+			checkResult("pthread_mutex_lock()\n", res);
 							
 			for(unsigned int i = 0; i < MAX_CLI_SEATS; i++){
 
@@ -414,28 +436,23 @@ void *reserveSeat(void *threadId)
 					break;
 				}
 				
-				sprintf(message, "\n seatNum:%d", seatNum);
-				if(seatNum >= 10)			
-				write(STDOUT_FILENO, message, 13);
-				else
-				write(STDOUT_FILENO, message, 12);	
-				
 				
 				if(isSeatFree(seats, seatNum, num_room_seats)){
-					sprintf(message, "\n booking seat");
-					write(STDOUT_FILENO, message, 14);
 					bookSeat(seats, seatNum, clientID, num_room_seats);
 
-					pthread_mutex_lock(&seats_aux_lock);
+					res = pthread_mutex_lock(&seats_aux_lock);
+					checkResult("pthread_mutex_lock()\n", res);
 						validatedIds[numValidatedSeats] = seatNum;
 						numValidatedSeats++;
-					pthread_mutex_unlock(&seats_aux_lock);
+					res = pthread_mutex_unlock(&seats_aux_lock);
+					checkResult("pthread_mutex_lock()\n", res);
 
 					break;	
 				}
 			}
 			
-			pthread_mutex_unlock(&seats_lock);
+			res = pthread_mutex_unlock(&seats_lock);
+			checkResult("pthread_mutex_lock()\n", res);
 		}
 			
 		sprintf(message, "\n valid:%d intended:%d\n", numValidatedSeats, r1.nrIntendedSeats);
@@ -445,24 +462,30 @@ void *reserveSeat(void *threadId)
 
 		if(numValidatedSeats < r1.nrIntendedSeats){
 			for(unsigned int a = 0; a < numValidatedSeats; a++){
-				pthread_mutex_lock(&seats_aux_lock);
+				res = pthread_mutex_lock(&seats_aux_lock);
+				checkResult("pthread_mutex_lock()\n", res);
 					sprintf(message, "\n free seat");
 					write(STDOUT_FILENO, message, 11);
 					freeSeat(seats, validatedIds[a], num_room_seats);
-				pthread_mutex_unlock(&seats_aux_lock);
+				res = pthread_mutex_unlock(&seats_aux_lock);
+				checkResult("pthread_mutex_lock()\n", res);
 			}	
 				
 			answer.error_flag = -5; // - At least one of the requests was not valid.
 
-			//write answer to fifo
+			// - Writing Answer to FIFO
 			n=write(fd,&answer.error_flag,sizeof(int)); 
 			if (n>0) printf("%d answer was sent to the client.\n", answer.error_flag);
 			
-			pthread_mutex_lock(&writing_lock);
+			// - Writing to slog
+			res = pthread_mutex_lock(&writing_lock);
+			checkResult("pthread_mutex_lock()\n", res);
 				write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, answer.error_flag);
-			pthread_mutex_unlock(&writing_lock);
+			res = pthread_mutex_unlock(&writing_lock);
+			checkResult("pthread_mutex_lock()\n", res);
 		}
-		else{ //writing the reserved seats to sbook and updating answer
+		
+		else{ // - Writing the reserved seats to sbook and updating answer
 			answer.reservedSeats[0] = numValidatedSeats;
 			for(unsigned int a = 0; a < numValidatedSeats; a++){
 				write_to_sbook(validatedIds[a]);
@@ -471,11 +494,13 @@ void *reserveSeat(void *threadId)
 		}
 
 		if(answer.error_flag == 0){
-			pthread_mutex_lock(&writing_lock);
+			res = pthread_mutex_lock(&writing_lock);
+			checkResult("pthread_mutex_lock()\n", res);
 				write_TO_CLIID_NT(r1, intThreadId, validatedIds, numValidatedSeats, answer.error_flag);
-			pthread_mutex_unlock(&writing_lock);
+			res = pthread_mutex_unlock(&writing_lock);
+			checkResult("pthread_mutex_lock()\n", res);
 
-			//write answer to fifo
+			// - Writing answer to FIFO
 			n=write(fd,&answer,sizeof(struct Answer)); 
 			if (n>0){
 				 printf("Answer was sent to the client: "); 
@@ -497,25 +522,56 @@ void *reserveSeat(void *threadId)
 
 	r1.answered = 'y';
 	
-	//<function for sending the request here>
+	// - Waiting to terminate after a given time period
 
-	pthread_mutex_lock(&end_ticketer_lock);
+	res = pthread_mutex_lock(&end_ticketer_lock);
+	checkResult("pthread_mutex_lock()\n", res);
 		
 		while(!close_thread){
-			pthread_cond_wait(&end_ticketer_cond, &end_ticketer_lock);
+			res = pthread_cond_wait(&end_ticketer_cond, &end_ticketer_lock);
+			checkResult("pthread_cond_wait()\n", res);
 		}
 
 		write_TO_CLOSED(intThreadId);
 
-	pthread_mutex_unlock(&end_ticketer_lock);
+	res = pthread_mutex_unlock(&end_ticketer_lock);
+	checkResult("pthread_mutex_lock()\n", res);
 
 	return NULL;
+}
+
+void destroy_locks_and_cond(){
+	int res;
+	
+	res = pthread_cond_destroy(&threads_cond);
+	checkResult("pthread_cond_destroy()\n", res); 
+	
+	res = pthread_cond_destroy(&end_ticketer_cond);
+	checkResult("pthread_cond_destroy()\n", res); 
+	
+	res= pthread_mutex_destroy(&threads_lock);
+	checkResult("pthread_mutex_destroy()\n", res); 
+	
+	res = pthread_mutex_destroy(&end_ticketer_lock);
+	checkResult("pthread_mutex_destroy()\n", res); 
+	
+	res = pthread_mutex_destroy(&delay_lock);
+	checkResult("pthread_mutex_destroy()\n", res); 
+	
+	res = pthread_mutex_destroy(&writing_lock);
+	checkResult("pthread_mutex_destroy()\n", res); 
+	
+	res = pthread_mutex_destroy(&seats_aux_lock);
+	checkResult("pthread_mutex_destroy()\n", res); 
+	
+	res = pthread_mutex_destroy(&seats_lock);
+	checkResult("pthread_mutex_destroy()\n", res); 
 }
 
 int main(int argc, char* argv[]){
 
 
-	int fd, n, file, sbook;
+	int fd, n, file, sbook, res;
 	
 	//1. Checking Input
 	
@@ -630,9 +686,11 @@ int main(int argc, char* argv[]){
 
 		// - Syncing with threads, letting them execute
 
-		pthread_mutex_lock(&threads_lock);		
+		res = pthread_mutex_lock(&threads_lock);
+		checkResult("pthread_mutex_lock()\n", res);		
 			pthread_cond_signal(&threads_cond);
-		pthread_mutex_unlock(&threads_lock);
+		res = pthread_mutex_unlock(&threads_lock);
+		checkResult("pthread_mutex_lock()\n", res);
 	
 		// - Wait until the request has been removed by one of the threads.
 
@@ -651,25 +709,39 @@ int main(int argc, char* argv[]){
 
 	// - Telling the threads it's time to close
 
-	pthread_mutex_lock(&end_ticketer_lock);
+	res = pthread_mutex_lock(&end_ticketer_lock);
+	checkResult("pthread_mutex_lock()\n", res);
+		
 		close_thread = 1;
-		pthread_cond_broadcast(&end_ticketer_cond);
-	pthread_mutex_unlock(&end_ticketer_lock);
+		
+		res = pthread_cond_broadcast(&end_ticketer_cond);
+		checkResult("pthread_cond_broadcast()\n", res);
+
+	res = pthread_mutex_unlock(&end_ticketer_lock);
+	checkResult("pthread_mutex_lock()\n", res);
 
 	// - Closing all threads and cleaning them up
 
 	for(int k = 0; k < num_ticket_offices; k++){
-		pthread_mutex_lock(&threads_lock);		
-			pthread_cond_broadcast(&threads_cond);
-		pthread_mutex_unlock(&threads_lock);
+		res = pthread_mutex_lock(&threads_lock);
+		checkResult("pthread_mutex_lock()\n", res);		
+			
+			res = pthread_cond_broadcast(&threads_cond);
+			checkResult("pthread_cond_broadcast()\n", res);
+		
+		res = pthread_mutex_unlock(&threads_lock);
+		checkResult("pthread_mutex_lock()\n", res);
 	
-		pthread_join(tid[k], NULL);
+		res = pthread_join(tid[k], NULL);
+		checkResult("pthread_join()\n", res);
 	}		
 
 	close(fd);
 
 	if (unlink("/tmp/requests")<0) printf("Error when destroying FIFO '/tmp/requests'\n"); 
 	else printf("FIFO '/tmp/requests' has been destroyed\n"); 
+
+	destroy_locks_and_cond();
 
 	return 0;
 }
