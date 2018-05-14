@@ -477,7 +477,7 @@ void *reserveSeat(void *threadId)
 			pthread_mutex_unlock(&writing_lock);
 
 			//write answer to fifo
-			n=write(fd,answer.reservedSeats,(MAX_CLI_SEATS + 1)*sizeof(int)); 
+			n=write(fd,&answer,sizeof(struct Answer)); 
 			if (n>0){
 				 printf("Answer was sent to the client: "); 
 				 for(unsigned int a = 0; a < numValidatedSeats + 1; a++){

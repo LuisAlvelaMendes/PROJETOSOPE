@@ -165,13 +165,10 @@ int main(int argc, char* argv[]){
 			if (tempAnswer.error_flag < 0) printf("\n %d Answer has arrived: %s\n", tempAnswer.error_flag, get_ending_note(tempAnswer.error_flag));
 			else{
 				printf("\nAnswer has arrived: ");
-				for(unsigned int a = 0; a < MAX_CLI_SEATS + 1; a++){
-					if (tempAnswer.reservedSeats[a] == 0){
-						printf("\n");
-						return;
-					}
-					else printf("%d ", tempAnswer.reservedSeats[a]);
+				for(unsigned int a = 0; a < tempAnswer.reservedSeats[0] + 1; a++){
+					printf("%d ", tempAnswer.reservedSeats[a]);
 				 }
+				 printf("\n");
 			}
 		}
 
