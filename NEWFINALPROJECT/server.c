@@ -344,7 +344,6 @@ void *reserveSeat(void *threadId)
 
 		sprintf(message, "\n in thread lock");
 		write(STDOUT_FILENO, message, 16);
-
 		write_TO_OPEN(intThreadId);	
 
 		while(global_current_Request.idClient == 0 && close_thread == 0){
