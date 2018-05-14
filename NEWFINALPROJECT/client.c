@@ -68,9 +68,29 @@ void write_to_clog_success(int idClient, int num_reserved, int reservedSeats[]){
 	close(file);
 }
 
+void write_to_cbook(int reservedSeats[]){
+
+	int file;
+	
+	file = open("cbook.txt",O_WRONLY|O_APPEND,0600);
+
+	if (file < 0) { 
+  		perror("cbook.txt"); 
+		return; 
+ 	}
+
+	for (int i = 1; i <= reservedSeats[0]; i++){
+		char message[MAX_MSG_LEN];
+		sprintf(message, "%04d\n", reservedSeats[i]);
+		write(file, message, 5);
+	}
+
+	close(file);
+}
+
 int main(int argc, char* argv[]){
 
-	int fd, n, answer, clog_file;
+	int fd, n, answer, clog_file, cbook_file;
 	time_t start = time(NULL);
 	struct Request request_1;
 	
@@ -92,6 +112,17 @@ int main(int argc, char* argv[]){
  	}
 	
 	close(clog_file);
+
+	// - Creating the client bookings file
+	
+	cbook_file = open("cbook.txt",O_CREAT|O_TRUNC,0600);
+	
+	if (cbook_file < 0) { 
+  		perror("cbook.txt");
+		return 0; 
+ 	}
+	
+	close(cbook_file);
 
 
 	//2. Getting args
@@ -218,6 +249,7 @@ int main(int argc, char* argv[]){
 			}
 			else{
 				write_to_clog_success(request_1.idClient, tempAnswer.reservedSeats[0], tempAnswer.reservedSeats);
+				write_to_cbook(tempAnswer.reservedSeats);
 				printf("\nAnswer has arrived: ");
 				for(unsigned int a = 0; a < tempAnswer.reservedSeats[0] + 1; a++){
 					printf("%d ", tempAnswer.reservedSeats[a]);
