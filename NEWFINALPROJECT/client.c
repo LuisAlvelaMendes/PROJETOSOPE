@@ -30,9 +30,47 @@ char* get_ending_note(int identifier){
 	return tag;
 }
 
+void write_to_clog_error(int idClient, char* error_code){
+
+	int file;
+	
+	file = open("clog.txt",O_WRONLY|O_APPEND,0600);
+
+	if (file < 0) { 
+  		perror("clog.txt"); 
+		return; 
+ 	}
+
+	char message[MAX_MSG_LEN];
+	sprintf(message, "%05d %s\n", idClient, error_code);
+	write(file, message, 10);
+
+	close(file);
+}
+
+void write_to_clog_success(int idClient, int num_reserved, int reservedSeats[]){
+
+	int file;
+	
+	file = open("clog.txt",O_WRONLY|O_APPEND,0600);
+
+	if (file < 0) { 
+  		perror("clog.txt"); 
+		return; 
+ 	}
+
+	for (int i = 1; i <= num_reserved; i++){
+		char message[MAX_MSG_LEN];
+		sprintf(message, "%05d %02d.%02d %04d\n", idClient, i, num_reserved, reservedSeats[i]);
+		write(file, message, 17);
+	}
+
+	close(file);
+}
+
 int main(int argc, char* argv[]){
 
-	int fd, n, answer;
+	int fd, n, answer, clog_file;
 	time_t start = time(NULL);
 	struct Request request_1;
 	
@@ -43,6 +81,18 @@ int main(int argc, char* argv[]){
 		printf("usage: client <time_out> <num_wanted_seats> <pref_seat_list>\n"); 
 		exit(1);
 	}
+
+	// - Making the logfile or cleaning it.
+
+	clog_file = open("clog.txt",O_CREAT|O_TRUNC,0600);
+	
+	if (clog_file == -1) { 
+  		perror("clog.txt"); 
+		return 0; 
+ 	}
+	
+	close(clog_file);
+
 
 	//2. Getting args
 
@@ -162,8 +212,12 @@ int main(int argc, char* argv[]){
 		n=read(answer,&tempAnswer,sizeof(struct Answer)); 
 		
 		if (n>0){
-			if (tempAnswer.error_flag < 0) printf("\n %d Answer has arrived: %s\n", tempAnswer.error_flag, get_ending_note(tempAnswer.error_flag));
+			if (tempAnswer.error_flag < 0){
+				write_to_clog_error(request_1.idClient, get_ending_note(tempAnswer.error_flag));
+				printf("\n %d Answer has arrived: %s\n", tempAnswer.error_flag, get_ending_note(tempAnswer.error_flag));
+			}
 			else{
+				write_to_clog_success(request_1.idClient, tempAnswer.reservedSeats[0], tempAnswer.reservedSeats);
 				printf("\nAnswer has arrived: ");
 				for(unsigned int a = 0; a < tempAnswer.reservedSeats[0] + 1; a++){
 					printf("%d ", tempAnswer.reservedSeats[a]);
